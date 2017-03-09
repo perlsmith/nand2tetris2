@@ -7,3 +7,7 @@
 // (R0, R1, R2 refer to RAM[0], RAM[1], and RAM[2], respectively.)
 
 // Put your code here.
+
+// hack got no mult, so obviously it's repeated addition - for loop
+// most efficient alkorezm will use the smaller number for the loop
+

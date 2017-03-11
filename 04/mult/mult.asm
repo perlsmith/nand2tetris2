@@ -26,7 +26,7 @@
 	D=M-D
 	@R1SMALLER
 	D, JGT		// if R1 is smaller than R0, this will be > 0 ..
-	@LOOP
+	@BEGIN
 	0, JMP			// start multiplying
 
 (R1SMALLER)
@@ -39,13 +39,26 @@
 	@R2
 	M=D
 
+(BEGIN)
+	@R2		// which has the larger number
+	D=M
+	@larger
+	M=D		// readability only - could have simply used R0 or R1 to reduce footprint
+	
 // for loop here
 (LOOP)
 	@counter
-	D=A-1
+	MD=M-1
 	@END
 	D, JEQ		// if we're at 0, we're done mate
-
-
+				// else
+	@larger
+	D=M
+	@R2
+	M=D+M
+	@LOOP
+	0, JMP
+	
 (END)
 	@END
+	0, JMP

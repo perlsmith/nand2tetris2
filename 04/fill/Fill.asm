@@ -36,13 +36,13 @@
 	0, JMP
 	
 (PAINT)
-	@8192
-	D=A
 	@counter
-	M=D
+	M=-1
 (LOOP_DRAW)
 	@counter
-	MD=M-1
+	MD=M+1		// check if you're at 8192
+	@8192
+	D=A-D
 	@DRAW_DONE
 	D, JEQ		// if we're 0, we're done
 	@SCREEN
@@ -57,6 +57,7 @@
 	A=M
 	M=D
 	@LOOP_DRAW
+	0, JMP
 (DRAW_DONE)
 	@pix_val
 	D=M

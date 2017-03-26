@@ -2,14 +2,14 @@
 import sys
 import re
 import pdb
+import textwrap
 
 class Parser():
 	def __init__( self, filename ):
 		print( "Parser constructor called")
-		self.instream = open( filename, "r")
+		self.instream = open( filename, "r")	# be nice to do some exception handling :)
 		
 	def hasMoreCommands( self ):
-#		pdb.set_trace()
 		self.nextline = self.instream.readline();
 		if not self.nextline:
 			return False
@@ -23,20 +23,155 @@ class Parser():
 	def advance( self ):
 		self.instr = self.command[0]
 		if len( self.command ) > 1 :
-			self.arg1 = self.command[1]
-			self.arg2 = self.command[2]
+			self.args1 = self.command[1]
+			self.args2 = self.command[2]
+			
+	def commandType( self ) :
+# return : C_ARITHMETIC, C_PUSH, C_POP, C_LABEL, C_GOTO, C_IF, C_FUNCTION, C_RETURN, C_CALL
+		if( re.search( "add|sub|neg|gt|lt|eq|and|or|not" , self.instr ) ) :
+			return "C_ARITHMETIC"
+		elif( "push" == self.instr ) :
+			return "C_PUSH"
+		elif( "pop" == self.instr ) :
+			return "C_POP"
+		else :
+			return "C_UNDEF"
+	
+	def arg1( self, command ) :
+		if( "C_ARITHMETIC" == command ) :
+			return self.instr
 		
 class CodeWriter():
 	def __init__( self, outfile):
 		print( "CodeWriter called")
 		self.outstream = open( outfile, "w")
-	
-	
-		
+		self.num_jmps = 1;	# used to keep track of gt,lt,eq which require labels - and hence unique IDs :(
+	# in the case of eq, gt, lt, you'll have to hit WR_TRUE_ and DONE_ to uniquify
+		self.snippets = {}
+		self.snippets['push' ] = self.push
+		self.snippets['pop'] = self.pop
+		self.snippets['add'] = self.add
+		self.snippets['sub'] = self.sub
+		self.snippets['not'] = self.c_not
+		self.snippets['and'] = self.c_and
+		self.snippets['or'] = self.c_or
+		self.snippets['neg'] = self.neg
 
+
+	def writeArith( self, command ) :
+#		pdb.set_trace()
+		match = re.search( "add|sub|neg|and|or|not", command )
+		if match :
+			self.outstream.write( '// ' + match.group(0) )
+			self.outstream.write( textwrap.dedent( self.snippets[ match.group(0) ] ) )
+			return
+		match = re.search( "gt|lt|eq", command )
+		if match :
+			dump = re.sub( r"JCOMP" , "J" + match.group(0).upper(), self.comp )
+			dump = re.sub( r"(WR_TRUE_|DONE_)" , r"\1" + str(self.num_jmps), dump, )
+			self.num_jmps = self.num_jmps + 1
 		
+	def close( self ) :
+		self.outstream.close();
+	
+	
+	push = 	"""
+	@segment
+	D = A
+	@offset
+	D = D + A
+	@SP
+	AM = M + 1
+	A = A - 1
+	M = D
+	"""
+
+	pop = """
+	@offset
+	D = A
+	@segment
+	D = M + D
+	@R13
+	M = D
+	@SP
+	AM = M - 1
+	D = M
+	@R13
+	A = M
+	M = D
+	"""
+
+	add = """
+	@SP
+	AM = M - 1
+	D = M
+	A = A - 1
+	M = M + D
+	"""
+	
+	sub = """
+	@SP
+	AM = M - 1
+	D = M
+	A = A - 1
+	M = M - D
+	"""
+	
+	c_and =	"""
+	@SP
+	AM = M - 1
+	D = M
+	A = A - 1
+	M = M & D
+	"""
+	
+	c_or = """
+	@SP
+	AM = M - 1
+	D = M
+	A = A - 1
+	M = M | D
+	"""
+	
+	c_not = """
+	@SP
+	A = M - 1
+	M = !M
+	"""
+	
+	neg = """
+	@SP
+	A = M - 1
+	M = -M
+	"""
+	
+	# need to hit JCOMP based on gt, lt, eq and also add # to WR_TRUE_ and DONE_
+	comp = """
+	@SP
+	AM = M - 1
+	D = M
+	A = A - 1
+	D = M - D
+	@WR_TRUE_
+	D, JCOMP
+	@SP
+	M = 0
+	@DONE_
+	0, JMP
+	(WR_TRUE_)
+	@SP
+	M=1
+	(DONE_)
+	"""
+
+	
 vm_parser = Parser( sys.argv[1] )
+vm_codewr = CodeWriter( re.sub( ".vm" , ".asm", sys.argv[1] ) )
 
 while vm_parser.hasMoreCommands():
 	vm_parser.advance()
 	print( vm_parser.instr)
+	if "C_ARITHMETIC" == vm_parser.commandType() :
+		vm_codewr.writeArith( vm_parser.arg1("C_ARITHMETIC") )
+
+	

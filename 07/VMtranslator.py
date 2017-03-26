@@ -6,7 +6,6 @@ import textwrap
 
 class Parser():
 	def __init__( self, filename ):
-		print( "Parser constructor called")
 		self.instream = open( filename, "r")	# be nice to do some exception handling :)
 		
 	def hasMoreCommands( self ):
@@ -40,10 +39,15 @@ class Parser():
 	def arg1( self, command ) :
 		if( "C_ARITHMETIC" == command ) :
 			return self.instr
+		elif( re.match( "C_P", command ) ) :
+			return self.args1
+	
+	def arg2( self, command ) :
+		if( re.match( "C_P|C_FUNCTION|C_CALL" , command) ) :
+			return self.args2
 		
 class CodeWriter():
 	def __init__( self, outfile):
-		print( "CodeWriter called")
 		self.outstream = open( outfile, "w")
 		self.num_jmps = 1;	# used to keep track of gt,lt,eq which require labels - and hence unique IDs :(
 	# in the case of eq, gt, lt, you'll have to hit WR_TRUE_ and DONE_ to uniquify
@@ -56,6 +60,7 @@ class CodeWriter():
 		self.snippets['and'] = self.c_and
 		self.snippets['or'] = self.c_or
 		self.snippets['neg'] = self.neg
+		self.segs = {'local' : "LCL", 'argument' : "ARG" ,  'this' : "" , 'that' : "THAT"}
 
 
 	def writeArith( self, command ) :
@@ -67,30 +72,61 @@ class CodeWriter():
 			return
 		match = re.search( "gt|lt|eq", command )
 		if match :
+			self.outstream.write( '// ' + match.group(0) )
 			dump = re.sub( r"JCOMP" , "J" + match.group(0).upper(), self.comp )
-			dump = re.sub( r"(WR_TRUE_|DONE_)" , r"\1" + str(self.num_jmps), dump, )
+			dump = re.sub( r"(?P<tag>WR_TRUE_|DONE_)" , r"\g<tag>" + str(self.num_jmps), dump, )
 			self.num_jmps = self.num_jmps + 1
-		
-	def close( self ) :
+			self.outstream.write( textwrap.dedent( dump ) )
+
+	def writePushPop( self, command, segment, index ) :
+	# we know that in the case of push constant i, segment is meaningless and we just push i onto stack
+	# 4 cases : local, argument, this, that
+	#		  : pointer, temp pointer 0 is this = R3, that = R4, temp1 = R5; temp 0 => R5
+	#		  : constant - a virtual segment -- only meaningful for push commands
+	#		  : static : when you encounter push static i in foo.vm --> 
+	#		  : 			@foo.i ; D=M; then push D onto stack
+		if "C_PUSH" == command :
+			match = re.search( "local|argument|this|that", segment )
+			if match :
+				self.outstream.write( '// ' + 'push ' + match.group(0) + ' ' + index )
+				dump = re.sub( r"segment", self.segs[segment], self.def_seg )
+				dump = re.sub( r"offset" , index , dump)
+				self.outstream.write( textwrap.dedent( dump + self.load_D + self.push ) )
+			
+			
+			
+			
+	def Close( self ) :
 		self.outstream.close();
 	
-	
-	push = 	"""
+	def_seg = """
 	@segment
 	D = A
 	@offset
-	D = D + A
+	A = D + A
+	"""
+
+	def_const = """
+	@constval
+	D = A
+	"""
+	
+	load_D = "D = M"
+	
+	# you have to define segment first
+	push = 	"""
 	@SP
 	AM = M + 1
 	A = A - 1
 	M = D
 	"""
 
+	# good only for LCL, ARG, THIS, THAT
 	pop = """
 	@offset
 	D = A
 	@segment
-	D = M + D
+	D = A + D
 	@R13
 	M = D
 	@SP
@@ -171,7 +207,11 @@ vm_codewr = CodeWriter( re.sub( ".vm" , ".asm", sys.argv[1] ) )
 while vm_parser.hasMoreCommands():
 	vm_parser.advance()
 	print( vm_parser.instr)
-	if "C_ARITHMETIC" == vm_parser.commandType() :
-		vm_codewr.writeArith( vm_parser.arg1("C_ARITHMETIC") )
+#	pdb.set_trace()	
+	cType = vm_parser.commandType()
+	if "C_ARITHMETIC" == cType :
+		vm_codewr.writeArith( vm_parser.arg1(cType) )
+	elif re.match( "C_P" , cType ) :
+		vm_codewr.writePushPop( cType, vm_parser.arg1(cType) , vm_parser.arg2(cType) )
 
-	
+vm_codewr.Close()

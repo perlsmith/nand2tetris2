@@ -7,6 +7,9 @@ import textwrap
 class Parser():
 	def __init__( self, filename ):
 		self.instream = open( filename, "r")	# be nice to do some exception handling :)
+		# need to support directories - pending..
+		match = re.match( "(\S+)\.vm" , filename )
+		base = match.group(1)
 		
 	def hasMoreCommands( self ):
 		self.nextline = self.instream.readline();
@@ -44,7 +47,10 @@ class Parser():
 	
 	def arg2( self, command ) :
 		if( re.match( "C_P|C_FUNCTION|C_CALL" , command) ) :
-			return self.args2
+			if "static" == self.args1 :
+				return self.base + '.' + self.args2
+			else :
+				return self.args2
 		
 class CodeWriter():
 	def __init__( self, outfile):
@@ -87,13 +93,30 @@ class CodeWriter():
 	#		  : 			@foo.i ; D=M; then push D onto stack
 		if "C_PUSH" == command :
 			match = re.search( "local|argument|this|that", segment )
+			self.outstream.write( '// ' + 'push ' + segment + ' ' + index )		# will be a mess for static :)
 			if match :
-				self.outstream.write( '// ' + 'push ' + match.group(0) + ' ' + index )
 				dump = re.sub( r"segment", self.segs[segment], self.def_seg )
 				dump = re.sub( r"offset" , index , dump)
 				self.outstream.write( textwrap.dedent( dump + self.load_D + self.push ) )
+			elif "constant" == segment :
+				dump = re.sub( r"constval", index, self.def_const )
+				self.outstream.write( textwrap.dedent( dump + self.push ) )
+			elif "static" == segment :
+				dump = re.sub( r"static", index, self.def_static )	# index is guaranteed to be filename.i
+				self.outstream.write( textwrap.dedent( dump + self.push) )
+			elif "pointer" == segment :
+				label = "R" + str( 3 + int( index ) )
+				dump = re.sub( r"static" , label, def_static )
+			elif "temp" == segment :
+				label = "R" + str( 5 + int( index ) )
+				dump = re.sub( r"static" , label, def_static )
+				
 			
-			
+#		if "C_POP" == command :
+			match = re.search( "local|argument|this|that", segment )
+			self.outstream.write( '// ' + 'pop ' + segment + ' ' + index )	# static will be a mess here..
+			if match :
+				
 			
 			
 	def Close( self ) :
@@ -109,6 +132,11 @@ class CodeWriter():
 	def_const = """
 	@constval
 	D = A
+	"""
+	
+	def_static = """
+	@static
+	D = M
 	"""
 	
 	load_D = "D = M"

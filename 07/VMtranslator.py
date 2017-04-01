@@ -10,7 +10,7 @@ class Parser():
 	def __init__( self, filename ):
 		self.instream = open( filename, "r")	# be nice to do some exception handling :)
 		# need to support directories - pending..
-		match = re.match( "([\\/]+)\.vm" , filename )		# dir1\dir2\name.vm --> name is what we capture
+		match = re.match( "^.+?([^\\/]+)\.vm" , filename )		# dir1\dir2\name.vm --> name is what we capture
 		base = match.group(1)
 		
 	def hasMoreCommands( self ):
@@ -118,7 +118,18 @@ class CodeWriter():
 			match = re.search( "local|argument|this|that", segment )
 			self.outstream.write( '// ' + 'pop ' + segment + ' ' + index )	# static will be a mess here..
 			if match :
-				
+				dump = re.sub( r"segment", self.segs[segment], self.def_seg )
+				dump = re.sub( r"offset" , index , dump)
+				self.outstream.write( textwrap.dedent( dump + self.load_D + self.pop ) )
+			elif "static" == segment :
+				dump = re.sub( r"static", index, self.def_static )	# index is guaranteed to be filename.i
+				self.outstream.write( textwrap.dedent( dump + self.push) )
+			elif "pointer" == segment :
+				label = "R" + str( 3 + int( index ) )
+				dump = re.sub( r"static" , label, def_static )
+			elif "temp" == segment :
+				label = "R" + str( 5 + int( index ) )
+				dump = re.sub( r"static" , label, def_static )
 			
 			
 	def Close( self ) :
@@ -237,29 +248,33 @@ class CodeWriter():
 # if no files in the specified source, then die..
 
 source = sys.argv[1]
-
+	
 if os.path.isdir( source ) :
 	# start off writing to source/source.asm by processing every .vm file you encounter
-	filelist = os.popen( "ls *.vm 2> nul")
+	filelist = os.popen( "ls " + source + "/*.vm").read().split()
 	if len( filelist ) < 1 :
-		print "Please check if the directory has .vm files in it"
+		print( "Please check if the directory has .vm files in it" )
 	else :
-		target = source + '.asm'
+		target = source + "/" + re.sub( "\S+/", "" , source ) + '.asm'
 else :
 	filelist = [source]
 	target = re.sub( "\.vm" , ".asm" , source )
 
-vm_parser = Parser( sys.argv[1] )
-vm_codewr = CodeWriter( re.sub( ".vm" , ".asm", sys.argv[1] ) )
+	
+vm_codewr = CodeWriter( target )
 
-while vm_parser.hasMoreCommands():
-	vm_parser.advance()
-	print( vm_parser.instr)
-#	pdb.set_trace()	
-	cType = vm_parser.commandType()
-	if "C_ARITHMETIC" == cType :
-		vm_codewr.writeArith( vm_parser.arg1(cType) )
-	elif re.match( "C_P" , cType ) :		# push or pop command..
-		vm_codewr.writePushPop( cType, vm_parser.arg1(cType) , vm_parser.arg2(cType) )
+for file in filelist :
+	pdb.set_trace()	
+	vm_parser = Parser( file )
+
+	while vm_parser.hasMoreCommands():
+		vm_parser.advance()
+		print( vm_parser.instr)
+		cType = vm_parser.commandType()
+		if "C_ARITHMETIC" == cType :
+			vm_codewr.writeArith( vm_parser.arg1(cType) )
+		elif re.match( "C_P" , cType ) :		# push or pop command..
+			vm_codewr.writePushPop( cType, vm_parser.arg1(cType) , vm_parser.arg2(cType) )
+		
 
 vm_codewr.Close()

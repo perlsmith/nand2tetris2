@@ -1,14 +1,16 @@
 
 import sys
 import re
-import pdb
+import pdb	# to be able to use the debugger
 import textwrap
+import os 	# to check if a directory has been provided
+import subprocess # to be able to get files using *.vm
 
 class Parser():
 	def __init__( self, filename ):
 		self.instream = open( filename, "r")	# be nice to do some exception handling :)
 		# need to support directories - pending..
-		match = re.match( "(\S+)\.vm" , filename )
+		match = re.match( "([\\/]+)\.vm" , filename )		# dir1\dir2\name.vm --> name is what we capture
 		base = match.group(1)
 		
 	def hasMoreCommands( self ):
@@ -228,7 +230,25 @@ class CodeWriter():
 	(DONE_)
 	"""
 
-	
+# Main program :
+
+# if a directory "Adder" is input containing .vm files, then the output is Adder/Adder.asm
+
+# if no files in the specified source, then die..
+
+source = sys.argv[1]
+
+if os.path.isdir( source ) :
+	# start off writing to source/source.asm by processing every .vm file you encounter
+	filelist = os.popen( "ls *.vm 2> nul")
+	if len( filelist ) < 1 :
+		print "Please check if the directory has .vm files in it"
+	else :
+		target = source + '.asm'
+else :
+	filelist = [source]
+	target = re.sub( "\.vm" , ".asm" , source )
+
 vm_parser = Parser( sys.argv[1] )
 vm_codewr = CodeWriter( re.sub( ".vm" , ".asm", sys.argv[1] ) )
 
@@ -239,7 +259,7 @@ while vm_parser.hasMoreCommands():
 	cType = vm_parser.commandType()
 	if "C_ARITHMETIC" == cType :
 		vm_codewr.writeArith( vm_parser.arg1(cType) )
-	elif re.match( "C_P" , cType ) :
+	elif re.match( "C_P" , cType ) :		# push or pop command..
 		vm_codewr.writePushPop( cType, vm_parser.arg1(cType) , vm_parser.arg2(cType) )
 
 vm_codewr.Close()

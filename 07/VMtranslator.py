@@ -245,14 +245,14 @@ class CodeWriter():
 	@WR_TRUE_
 	D, JCOMP
 	@SP
-	A = M
+	A = M - 1
 	M = 0
 	@DONE_
 	0, JMP
 	(WR_TRUE_)
 	@SP
-	A = M
-	M=1
+	A = M - 1
+	M = -1
 	(DONE_)
 	"""
 
@@ -263,7 +263,7 @@ class CodeWriter():
 # if no files in the specified source, then die..
 
 source = sys.argv[1]
-pdb.set_trace()	
+# pdb.set_trace()	
 	
 if os.path.isdir( source ) :
 	# start off writing to source/source.asm by processing every .vm file you encounter

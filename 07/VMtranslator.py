@@ -47,10 +47,11 @@ class Parser():
 		elif( re.match( "C_P", command ) ) :
 			return self.args1
 	
+	# this is being used for the "index" argument of writePushPop
 	def arg2( self, command ) :
 		if( re.match( "C_P|C_FUNCTION|C_CALL" , command) ) :
 			if "static" == self.args1 :
-				return self.base + '.' + self.args2
+				return self.base + '.' + self.args2		# is what produces filename.i
 			else :
 				return self.args2
 		
@@ -107,29 +108,32 @@ class CodeWriter():
 				dump = re.sub( r"static", index, self.def_static )	# index is guaranteed to be filename.i
 				self.outstream.write( textwrap.dedent( dump + self.push) )
 			elif "pointer" == segment :
-				label = "R" + str( 3 + int( index ) )
+				label = "R" + str( 3 + int( index ) )		# not the most efficient machine code - could optimize
 				dump = re.sub( r"static" , label, def_static )
-			elif "temp" == segment :
-				label = "R" + str( 5 + int( index ) )
+				self.outstream.write( textwrap.dedent( dump + self.push) )
+			elif "temp" == segment :					# definitely can refactor for elegance
+				label = "R" + str( 5 + int( index ) )		# same comment on efficiency..
 				dump = re.sub( r"static" , label, def_static )
+				self.outstream.write( textwrap.dedent( dump + self.push) )
 				
 			
-#		if "C_POP" == command :
+		if "C_POP" == command :
 			match = re.search( "local|argument|this|that", segment )
 			self.outstream.write( '// ' + 'pop ' + segment + ' ' + index )	# static will be a mess here..
 			if match :
-				dump = re.sub( r"segment", self.segs[segment], self.def_seg )
+				dump = re.sub( r"segment", self.segs[segment], self.def_pop_seg )
 				dump = re.sub( r"offset" , index , dump)
 				self.outstream.write( textwrap.dedent( dump + self.load_D + self.pop ) )
 			elif "static" == segment :
-				dump = re.sub( r"static", index, self.def_static )	# index is guaranteed to be filename.i
-				self.outstream.write( textwrap.dedent( dump + self.push) )
+			# we want pop static i in foo.vm to update the variable foo.i in foo.asm
+				dump = re.sub( r"static", index, self.def_pop_static )	# index is guaranteed to be filename.i
+				self.outstream.write( textwrap.dedent( dump + self.pop) )
 			elif "pointer" == segment :
 				label = "R" + str( 3 + int( index ) )
-				dump = re.sub( r"static" , label, def_static )
+				dump = re.sub( r"static" , label, def_pop_static )
 			elif "temp" == segment :
 				label = "R" + str( 5 + int( index ) )
-				dump = re.sub( r"static" , label, def_static )
+				dump = re.sub( r"static" , label, def_pop_static )
 			
 			
 	def Close( self ) :
@@ -162,12 +166,21 @@ class CodeWriter():
 	M = D
 	"""
 
-	# good only for LCL, ARG, THIS, THAT
-	pop = """
+	def_pop_seg = """
 	@offset
 	D = A
 	@segment
 	D = A + D
+	"""
+	
+	def_pop_static = """
+	@static
+	D = A
+	"""
+	
+	# good only for LCL, ARG, THIS, THAT
+	# need to have D containing target address
+	pop = """
 	@R13
 	M = D
 	@SP
@@ -232,11 +245,13 @@ class CodeWriter():
 	@WR_TRUE_
 	D, JCOMP
 	@SP
+	A = M
 	M = 0
 	@DONE_
 	0, JMP
 	(WR_TRUE_)
 	@SP
+	A = M
 	M=1
 	(DONE_)
 	"""
@@ -248,6 +263,7 @@ class CodeWriter():
 # if no files in the specified source, then die..
 
 source = sys.argv[1]
+pdb.set_trace()	
 	
 if os.path.isdir( source ) :
 	# start off writing to source/source.asm by processing every .vm file you encounter
@@ -255,7 +271,7 @@ if os.path.isdir( source ) :
 	if len( filelist ) < 1 :
 		print( "Please check if the directory has .vm files in it" )
 	else :
-		target = source + "/" + re.sub( "\S+/", "" , source ) + '.asm'
+		target = source + "/" + re.sub( r".+?/?([^/]+)/*$", r"\1" , source ) + '.asm'
 else :
 	filelist = [source]
 	target = re.sub( "\.vm" , ".asm" , source )
@@ -264,7 +280,6 @@ else :
 vm_codewr = CodeWriter( target )
 
 for file in filelist :
-	pdb.set_trace()	
 	vm_parser = Parser( file )
 
 	while vm_parser.hasMoreCommands():

@@ -69,7 +69,7 @@ class CodeWriter():
 		self.snippets['and'] = self.c_and
 		self.snippets['or'] = self.c_or
 		self.snippets['neg'] = self.neg
-		self.segs = {'local' : "LCL", 'argument' : "ARG" ,  'this' : "" , 'that' : "THAT"}
+		self.segs = {'local' : "LCL", 'argument' : "ARG" ,  'this' : "THIS" , 'that' : "THAT"}
 
 
 	def writeArith( self, command ) :
@@ -100,7 +100,7 @@ class CodeWriter():
 			if match :
 				dump = re.sub( r"segment", self.segs[segment], self.def_seg )
 				dump = re.sub( r"offset" , index , dump)
-				self.outstream.write( textwrap.dedent( dump + self.load_D + self.push ) )
+				self.outstream.write( textwrap.dedent( dump + self.push ) )
 			elif "constant" == segment :
 				dump = re.sub( r"constval", index, self.def_const )
 				self.outstream.write( textwrap.dedent( dump + self.push ) )
@@ -109,7 +109,7 @@ class CodeWriter():
 				self.outstream.write( textwrap.dedent( dump + self.push) )
 			elif "pointer" == segment :
 				label = "R" + str( 3 + int( index ) )		# not the most efficient machine code - could optimize
-				dump = re.sub( r"static" , label, def_static )
+				dump = re.sub( r"static" , label, self.def_static )
 				self.outstream.write( textwrap.dedent( dump + self.push) )
 			elif "temp" == segment :					# definitely can refactor for elegance
 				label = "R" + str( 5 + int( index ) )		# same comment on efficiency..
@@ -118,34 +118,37 @@ class CodeWriter():
 				
 			
 		if "C_POP" == command :
+#			pdb.set_trace()
 			match = re.search( "local|argument|this|that", segment )
 			self.outstream.write( '// ' + 'pop ' + segment + ' ' + index )	# static will be a mess here..
 			if match :
-				dump = re.sub( r"segment", self.segs[segment], self.def_pop_seg )
+				dump = re.sub( r"segment", self.segs[segment], self.def_seg )
 				dump = re.sub( r"offset" , index , dump)
-				self.outstream.write( textwrap.dedent( dump + self.load_D + self.pop ) )
+				self.outstream.write( textwrap.dedent( dump + self.pop ) )
 			elif "static" == segment :
 			# we want pop static i in foo.vm to update the variable foo.i in foo.asm
 				dump = re.sub( r"static", index, self.def_pop_static )	# index is guaranteed to be filename.i
 				self.outstream.write( textwrap.dedent( dump + self.pop) )
 			elif "pointer" == segment :
 				label = "R" + str( 3 + int( index ) )
-				dump = re.sub( r"static" , label, def_pop_static )
+				dump = re.sub( r"static" , label, self.def_pop_static )
+				self.outstream.write( textwrap.dedent( dump + self.pop) )
 			elif "temp" == segment :
 				label = "R" + str( 5 + int( index ) )
-				dump = re.sub( r"static" , label, def_pop_static )
+				dump = re.sub( r"static" , label, self.def_pop_static )
+				self.outstream.write( textwrap.dedent( dump + self.pop) )
 			
 			
 	def Close( self ) :
 		self.outstream.close();
 	
 	def_seg = """
-	@segment
-	D = A
 	@offset
-	A = D + A
+	D = A
+	@segment
+	D = M + D
 	"""
-
+	
 	def_const = """
 	@constval
 	D = A
@@ -155,8 +158,7 @@ class CodeWriter():
 	@static
 	D = M
 	"""
-	
-	load_D = "D = M"
+
 	
 	# you have to define segment first
 	push = 	"""
@@ -166,19 +168,12 @@ class CodeWriter():
 	M = D
 	"""
 
-	def_pop_seg = """
-	@offset
-	D = A
-	@segment
-	D = A + D
-	"""
-	
+
 	def_pop_static = """
 	@static
 	D = A
 	"""
 	
-	# good only for LCL, ARG, THIS, THAT
 	# need to have D containing target address
 	pop = """
 	@R13

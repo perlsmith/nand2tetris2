@@ -11,7 +11,7 @@ class Parser():
 		self.instream = open( filename, "r")	# be nice to do some exception handling :)
 		# need to support directories - pending..
 		match = re.match( "^.+?([^\\/]+)\.vm" , filename )		# dir1\dir2\name.vm --> name is what we capture
-		base = match.group(1)
+		self.base = match.group(1)
 		
 	def hasMoreCommands( self ):
 		self.nextline = self.instream.readline();
@@ -98,7 +98,7 @@ class CodeWriter():
 			match = re.search( "local|argument|this|that", segment )
 			self.outstream.write( '// ' + 'push ' + segment + ' ' + index )		# will be a mess for static :)
 			if match :
-				dump = re.sub( r"segment", self.segs[segment], self.def_seg )
+				dump = re.sub( r"segment", self.segs[segment], self.def_seg_push )
 				dump = re.sub( r"offset" , index , dump)
 				self.outstream.write( textwrap.dedent( dump + self.push ) )
 			elif "constant" == segment :
@@ -113,7 +113,7 @@ class CodeWriter():
 				self.outstream.write( textwrap.dedent( dump + self.push) )
 			elif "temp" == segment :					# definitely can refactor for elegance
 				label = "R" + str( 5 + int( index ) )		# same comment on efficiency..
-				dump = re.sub( r"static" , label, def_static )
+				dump = re.sub( r"static" , label, self.def_static )
 				self.outstream.write( textwrap.dedent( dump + self.push) )
 				
 			
@@ -122,7 +122,7 @@ class CodeWriter():
 			match = re.search( "local|argument|this|that", segment )
 			self.outstream.write( '// ' + 'pop ' + segment + ' ' + index )	# static will be a mess here..
 			if match :
-				dump = re.sub( r"segment", self.segs[segment], self.def_seg )
+				dump = re.sub( r"segment", self.segs[segment], self.def_seg_pop )
 				dump = re.sub( r"offset" , index , dump)
 				self.outstream.write( textwrap.dedent( dump + self.pop ) )
 			elif "static" == segment :
@@ -142,11 +142,19 @@ class CodeWriter():
 	def Close( self ) :
 		self.outstream.close();
 	
-	def_seg = """
+	def_seg_pop = """
 	@offset
 	D = A
 	@segment
 	D = M + D
+	"""
+
+	def_seg_push = """
+	@offset
+	D = A
+	@segment
+	A = M + D
+	D = M
 	"""
 	
 	def_const = """
@@ -160,7 +168,7 @@ class CodeWriter():
 	"""
 
 	
-	# you have to define segment first
+	# you have to define segment first with D containing the address value
 	push = 	"""
 	@SP
 	AM = M + 1

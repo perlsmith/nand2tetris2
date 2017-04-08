@@ -155,8 +155,8 @@ class CodeWriter():
 				self.outstream.write( textwrap.dedent( dump + self.pop) )
 
 	def writeGoto( self,  segment ) :
-		self.outstream.write( '//  goto ' + segment )
-		self.outstream.write( '@' + segment + "\n" + '0, JMP' )
+		self.outstream.write( '//  goto ' + segment + "\n")
+		self.outstream.write( '@' + segment + "\n" + '0, JMP' + "\n" )
 		
 	def writeIf( self,  segment ) :
 		self.outstream.write( '// if-goto ' + segment )

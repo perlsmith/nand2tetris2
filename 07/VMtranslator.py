@@ -287,7 +287,7 @@ for file in filelist :
 
 	while vm_parser.hasMoreCommands():
 		vm_parser.advance()
-		print( vm_parser.instr)
+#		print( vm_parser.instr)
 		cType = vm_parser.commandType()
 		if "C_ARITHMETIC" == cType :
 			vm_codewr.writeArith( vm_parser.arg1(cType) )

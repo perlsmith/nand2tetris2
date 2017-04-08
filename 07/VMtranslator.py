@@ -28,7 +28,8 @@ class Parser():
 		self.instr = self.command[0]
 		if len( self.command ) > 1 :
 			self.args1 = self.command[1]
-			self.args2 = self.command[2]
+			if len( self.command ) > 2 :
+				self.args2 = self.command[2]
 			
 	def commandType( self ) :
 # return : C_ARITHMETIC, C_PUSH, C_POP, C_LABEL, C_GOTO, C_IF, C_FUNCTION, C_RETURN, C_CALL
@@ -38,14 +39,27 @@ class Parser():
 			return "C_PUSH"
 		elif( "pop" == self.instr ) :
 			return "C_POP"
+		elif( "goto" == self.instr ) :
+			return "C_GOTO"
+		elif( "if-goto" == self.instr ) :
+			return "C_IF"
+		elif( "label" == self.instr ) :
+			return "C_LABEL"
+		elif( "function" == self.instr ) :
+			return "C_FUNCTION"
+		elif( "return" == self.instr ) :
+			return "C_RETURN"
+		elif( "call" == self.instr ) :
+			return "C_CALL"
 		else :
 			return "C_UNDEF"
 	
 	def arg1( self, command ) :
 		if( "C_ARITHMETIC" == command ) :
 			return self.instr
-		elif( re.match( "C_P", command ) ) :
+		else :
 			return self.args1
+			
 	
 	# this is being used for the "index" argument of writePushPop
 	def arg2( self, command ) :
@@ -60,6 +74,8 @@ class CodeWriter():
 		self.outstream = open( outfile, "w")
 		self.num_jmps = 1;	# used to keep track of gt,lt,eq which require labels - and hence unique IDs :(
 	# in the case of eq, gt, lt, you'll have to hit WR_TRUE_ and DONE_ to uniquify
+		self.num_calls = 1;
+		self.num_rets = 1;
 		self.snippets = {}
 		self.snippets['push' ] = self.push
 		self.snippets['pop'] = self.pop
@@ -138,17 +154,23 @@ class CodeWriter():
 				dump = re.sub( r"static" , label, self.def_pop_static )
 				self.outstream.write( textwrap.dedent( dump + self.pop) )
 
-		if "C_GOTO" == command :
-			self.outstream.write( '//  goto ' + segment )
-			self.outstream.write( '@' + segment + "\n" + '0, JMP' )
+	def writeGoto( self,  segment ) :
+		self.outstream.write( '//  goto ' + segment )
+		self.outstream.write( '@' + segment + "\n" + '0, JMP' )
 		
-		if "C_IF" == command :
-			self.outstream.write( '// if-goto ' + segment )
-			self.outstream.write( re.sub( r"label" , segment, self.def_if_goto ) )
+	def writeIf( self,  segment ) :
+		self.outstream.write( '// if-goto ' + segment )
+		self.outstream.write( textwrap.dedent( re.sub( r"label" , segment, self.def_if_goto ) ) )
+
+	def writeLabel( self,  segment ) :
+		self.outstream.write( '// label ' + segment + "\n" + '(' + segment + ")\n")	
 			
-		if "C_LABEL" == command :
-			self.outstream.write( '// label ' + segment + "\n" + '@' + segment )
-			
+	def writeCall( self,  functionName, nArgs ) :
+		# call functionName nArgs
+		self.outstream.write( '// return ' )
+		dump = re.sub( r"(?P<tag>returnAddress" , r"\g<tag>_" + str( self.num_rets), dump )
+		self.num_rets = self.num_rets + 1
+		self.outstream.write( textwrap.dedent( dump) )
 			
 	def Close( self ) :
 		self.outstream.close();
@@ -201,9 +223,9 @@ class CodeWriter():
 	"""
 
 
-		def_if_goto = """
+	def_if_goto = """
 	@SP
-	A = A - 1
+	AM = M - 1
 	D = M
 	@label
 	D, JNE
@@ -354,14 +376,19 @@ for file in filelist :
 
 	while vm_parser.hasMoreCommands():
 		vm_parser.advance()
-#		print( vm_parser.instr)
+		print( vm_parser.instr)
 		cType = vm_parser.commandType()
 		if "C_ARITHMETIC" == cType :
 			vm_codewr.writeArith( vm_parser.arg1(cType) )
 		elif re.match( "C_P" , cType ) :		# push or pop command..
 			vm_codewr.writePushPop( cType, vm_parser.arg1(cType) , vm_parser.arg2(cType) )
 		elif re.match( "C_GOTO" , cType ) :
-			vm_codewr.writeGoto( cType, vm_parser.arg1(cType) )
+			vm_codewr.writeGoto(  vm_parser.arg1(cType) )
+		elif re.match( "C_IF" , cType ) :
+			vm_codewr.writeIf( vm_parser.arg1(cType) )
+		elif re.match( "C_LABEL" , cType ) :
+#			pdb.set_trace()
+			vm_codewr.writeLabel( vm_parser.arg1(cType) )
 		
 
 vm_codewr.Close()

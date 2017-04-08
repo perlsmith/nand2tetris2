@@ -57,6 +57,8 @@ class Parser():
 	def arg1( self, command ) :
 		if( "C_ARITHMETIC" == command ) :
 			return self.instr
+		elif( re.match( "C_FUNCTION|C_CALL" , command ) ) :
+			return self.base + '.' + self.arg1		# after seeing the slide with Bar.mult 4/8/17
 		else :
 			return self.args1
 			
@@ -167,14 +169,86 @@ class CodeWriter():
 			
 	def writeCall( self,  functionName, nArgs ) :
 		# call functionName nArgs
-		self.outstream.write( '// return ' )
+		self.outstream.write( "// call " + functionName + ' ' + str( nArgs) + "\n" )
 		dump = re.sub( r"(?P<tag>returnAddress" , r"\g<tag>_" + str( self.num_rets), dump )
 		self.num_rets = self.num_rets + 1
+		dump = re.sub( r"functionName" , functionName , dump )
+		dump = re.sub( r"m5mNargs" , str( 5 + nArgs ) , dump )
 		self.outstream.write( textwrap.dedent( dump) )
+
+	def writeFunction( self, functionName, nVars ) :
+		# function functionName nVars
+		self.outstream.write( "// function " + functionName + ' ' + str( nVars ) + "\n" )
+		self.outstream.write( "(" + functionName + ")\n" )	# this is the label that the call routine refers to..
+		for x in range( nVars ) :
+			self.outstream.write( textwrap.dedent( self.def_push_0 ) )
+
+	def writeReturn( self ) :
+		self.outstream.write( "// return\n" )
+		self.outstream.write( textwrap.dedent( self.def_return ) )
 			
 	def Close( self ) :
 		self.outstream.close();
 
+	def_return = """
+	@LCL
+	D = M
+	@R13
+	M = D
+	@5
+	D = A
+	@R13
+	A = M - D
+	D = M
+	@R14
+	M = D
+	""" 		# this is retAddr = *( endFrame - 5 ) after endFrame = LCL
+	def_return = def_return + """
+	@SP
+	A = M - 1
+	D = M
+	@ARG
+	A = M
+	M = D
+	D = M + 1
+	@SP
+	M = D
+	"""			# this is  *ARG = pop() and then SP = ARG + 1
+	def_return = def_return + """
+	@R13
+	MA = M-1
+	D = M
+	@LCL
+	M = D
+	@R13
+	MA = M-1
+	D = M
+	@ARG
+	M = D
+	@R13
+	MA = M-1
+	D = M
+	@THIS
+	M = D
+	@R13
+	MA = M-1
+	D = M
+	@THAT
+	M = D
+	@R14
+	A = M
+	0, JMP
+	"""
+	
+		
+		
+	def_push_0 = """
+	@SP
+	AM = M + 1
+	A = A - 1
+	M = 0
+	"""
+		
 	def_call = """
 	@returnAddress
 	D = A
@@ -389,6 +463,12 @@ for file in filelist :
 		elif re.match( "C_LABEL" , cType ) :
 #			pdb.set_trace()
 			vm_codewr.writeLabel( vm_parser.arg1(cType) )
+		elif re.match( "C_FUNCTION" , cType ) :
+			vm_codewr.writeFunction( "C_FUNCTION" , vm_parser.arg1(cType) , vm_parser.arg2(cType) )
+		elif re.match( "C_CALL" , cType ) :
+			vm_codewr.writeCall( "C_CALL" , vm_parser.arg1(cType) , vm_parser.arg2(cType) )
+		elif re.match( "C_RETURN" , cType ) :
+			vm_codewr.writeReturn()
 		
 
 vm_codewr.Close()

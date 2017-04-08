@@ -137,11 +137,78 @@ class CodeWriter():
 				label = "R" + str( 5 + int( index ) )
 				dump = re.sub( r"static" , label, self.def_pop_static )
 				self.outstream.write( textwrap.dedent( dump + self.pop) )
+
+		if "C_GOTO" == command :
+			self.outstream.write( '//  goto ' + segment )
+			self.outstream.write( '@' + segment + "\n" + '0, JMP' )
+		
+		if "C_IF" == command :
+			self.outstream.write( '// if-goto ' + segment )
+			self.outstream.write( re.sub( r"label" , segment, self.def_if_goto ) )
+			
+		if "C_LABEL" == command :
+			self.outstream.write( '// label ' + segment + "\n" + '@' + segment )
 			
 			
 	def Close( self ) :
 		self.outstream.close();
-	
+
+	def_call = """
+	@returnAddress
+	D = A
+	@SP
+	AM = M+1
+	A = A-1
+	M = D
+	@LCL
+	D = M
+	@SP
+	AM = M+1
+	A = A-1
+	M = D		
+	@ARG
+	@LCL
+	D = M
+	@SP
+	AM = M+1
+	A = A-1
+	M = D
+	@THIS
+	D = M
+	@SP
+	AM = M+1
+	A = A-1
+	M = D
+	@THAT
+	D = M
+	@SP
+	AM = M+1
+	A = A-1
+	M = D
+	@m5mNargs
+	D = A
+	@SP
+	D = A - D
+	@ARG
+	M = D
+	@SP
+	D = A
+	@LCL
+	M = D
+	@functionName
+	0,JMP
+	(returnAddress)
+	"""
+
+
+		def_if_goto = """
+	@SP
+	A = A - 1
+	D = M
+	@label
+	D, JNE
+	"""
+		
 	def_seg_pop = """
 	@offset
 	D = A
@@ -293,6 +360,8 @@ for file in filelist :
 			vm_codewr.writeArith( vm_parser.arg1(cType) )
 		elif re.match( "C_P" , cType ) :		# push or pop command..
 			vm_codewr.writePushPop( cType, vm_parser.arg1(cType) , vm_parser.arg2(cType) )
+		elif re.match( "C_GOTO" , cType ) :
+			vm_codewr.writeGoto( cType, vm_parser.arg1(cType) )
 		
 
 vm_codewr.Close()

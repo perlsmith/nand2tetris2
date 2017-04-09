@@ -75,7 +75,6 @@ class CodeWriter():
 		self.num_jmps = 1;	# used to keep track of gt,lt,eq which require labels - and hence unique IDs :(
 	# in the case of eq, gt, lt, you'll have to hit WR_TRUE_ and DONE_ to uniquify
 		self.num_calls = 1;
-		self.num_rets = 1;
 		self.snippets = {}
 		self.snippets['push' ] = self.push
 		self.snippets['pop'] = self.pop
@@ -168,10 +167,10 @@ class CodeWriter():
 	def writeCall( self,  functionName, nArgs ) :
 		# call functionName nArgs
 		self.outstream.write( "// call " + functionName + ' ' + str( nArgs) + "\n" )
-		dump = re.sub( r"(?P<tag>returnAddress" , r"\g<tag>_" + str( self.num_rets), dump )
-		self.num_rets = self.num_rets + 1
+		dump = re.sub( r"(?P<tag>returnAddress)" , r"\g<tag>_" + str( self.num_calls), self.def_call )
+		self.num_calls = self.num_calls + 1
 		dump = re.sub( r"functionName" , functionName , dump )
-		dump = re.sub( r"m5mNargs" , str( 5 + nArgs ) , dump )
+		dump = re.sub( r"m5mNargs" , str( 5 + int(nArgs) ) , dump )
 		self.outstream.write( textwrap.dedent( dump) )
 
 	def writeFunction( self, functionName, nVars ) :
@@ -254,19 +253,24 @@ class CodeWriter():
 	AM = M+1
 	A = A-1
 	M = D
+	""" 		# push returnAddress
+	def_call = def_call + """
 	@LCL
 	D = M
 	@SP
 	AM = M+1
 	A = A-1
-	M = D		
+	M = D	
+	"""			# push LCL
+	def_call = def_call + """
 	@ARG
-	@LCL
 	D = M
 	@SP
 	AM = M+1
 	A = A-1
 	M = D
+	"""			# push ARG
+	def_call = def_call + """
 	@THIS
 	D = M
 	@SP
@@ -279,20 +283,24 @@ class CodeWriter():
 	AM = M+1
 	A = A-1
 	M = D
+	""" 		# push THIS and push THAT
+	def_call = def_call + """
 	@m5mNargs
 	D = A
 	@SP
-	D = A - D
+	D = M - D
 	@ARG
 	M = D
+	"""			# ARG = SP - 5 - nArgs
+	def_call = def_call + """
 	@SP
-	D = A
+	D = M
 	@LCL
 	M = D
 	@functionName
 	0,JMP
 	(returnAddress)
-	"""
+	"""			# which are LCL = SP and then goto functionName
 
 
 	def_if_goto = """
@@ -435,20 +443,30 @@ if os.path.isdir( source ) :
 	if len( filelist ) < 1 :
 		print( "Please check if the directory has .vm files in it" )
 	else :
-		target = source + "/" + re.sub( r".+?/?([^/]+)/*$", r"\1" , source ) + '.asm'
+		target = source + "/" + re.sub( r".+?/?([^/]+)/*$", r"\1" , source ) + '.tmp'
 else :
 	filelist = [source]
-	target = re.sub( "\.vm" , ".asm" , source )
+	target = re.sub( "\.vm" , ".tmp" , source )
 
+final = re.sub( "\.tmp" , ".asm" , target )
 	
 vm_codewr = CodeWriter( target )
+seen_Sys_init = 0
+bootStrap = """
+@256
+D = A
+@0
+M = D
+@Sys.init
+0, JMP
+"""
 
 for file in filelist :
 	vm_parser = Parser( file )
 
 	while vm_parser.hasMoreCommands():
 		vm_parser.advance()
-		print( vm_parser.instr)
+#		print( vm_parser.instr)
 		cType = vm_parser.commandType()
 		if "C_ARITHMETIC" == cType :
 			vm_codewr.writeArith( vm_parser.arg1(cType) )
@@ -463,6 +481,8 @@ for file in filelist :
 			vm_codewr.writeLabel( vm_parser.arg1(cType) )
 		elif re.match( "C_FUNCTION" , cType ) :
 			vm_codewr.writeFunction(  vm_parser.arg1(cType) , vm_parser.arg2(cType) )
+			if "Sys.init" == vm_parser.arg1(cType) :
+				seen_Sys_init = 1
 		elif re.match( "C_CALL" , cType ) :
 			vm_codewr.writeCall(  vm_parser.arg1(cType) , vm_parser.arg2(cType) )
 		elif re.match( "C_RETURN" , cType ) :
@@ -470,3 +490,14 @@ for file in filelist :
 		
 
 vm_codewr.Close()
+
+if seen_Sys_init :
+	outfinal = open( final, "w" )
+	outfinal.write( textwrap.dedent( bootStrap ) )
+	outfinal.close()
+	os.system( "cat " + target + " >> " + final )
+	os.system( "rm -f " + target )
+else :
+	os.system( "mv " + target + " " + final )
+
+

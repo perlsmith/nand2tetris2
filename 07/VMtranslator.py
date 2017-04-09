@@ -57,8 +57,6 @@ class Parser():
 	def arg1( self, command ) :
 		if( "C_ARITHMETIC" == command ) :
 			return self.instr
-		elif( re.match( "C_FUNCTION|C_CALL" , command ) ) :
-			return self.base + '.' + self.arg1		# after seeing the slide with Bar.mult 4/8/17
 		else :
 			return self.args1
 			
@@ -180,7 +178,7 @@ class CodeWriter():
 		# function functionName nVars
 		self.outstream.write( "// function " + functionName + ' ' + str( nVars ) + "\n" )
 		self.outstream.write( "(" + functionName + ")\n" )	# this is the label that the call routine refers to..
-		for x in range( nVars ) :
+		for x in range( int(nVars) ) :
 			self.outstream.write( textwrap.dedent( self.def_push_0 ) )
 
 	def writeReturn( self ) :
@@ -210,30 +208,30 @@ class CodeWriter():
 	@ARG
 	A = M
 	M = D
-	D = M + 1
+	D = A + 1
 	@SP
 	M = D
 	"""			# this is  *ARG = pop() and then SP = ARG + 1
 	def_return = def_return + """
 	@R13
-	MA = M-1
+	AM = M-1
 	D = M
-	@LCL
+	@THAT
 	M = D
 	@R13
-	MA = M-1
-	D = M
-	@ARG
-	M = D
-	@R13
-	MA = M-1
+	AM = M-1
 	D = M
 	@THIS
 	M = D
 	@R13
-	MA = M-1
+	AM = M-1
 	D = M
-	@THAT
+	@ARG
+	M = D
+	@R13
+	AM = M-1
+	D = M
+	@LCL
 	M = D
 	@R14
 	A = M
@@ -464,9 +462,9 @@ for file in filelist :
 #			pdb.set_trace()
 			vm_codewr.writeLabel( vm_parser.arg1(cType) )
 		elif re.match( "C_FUNCTION" , cType ) :
-			vm_codewr.writeFunction( "C_FUNCTION" , vm_parser.arg1(cType) , vm_parser.arg2(cType) )
+			vm_codewr.writeFunction(  vm_parser.arg1(cType) , vm_parser.arg2(cType) )
 		elif re.match( "C_CALL" , cType ) :
-			vm_codewr.writeCall( "C_CALL" , vm_parser.arg1(cType) , vm_parser.arg2(cType) )
+			vm_codewr.writeCall(  vm_parser.arg1(cType) , vm_parser.arg2(cType) )
 		elif re.match( "C_RETURN" , cType ) :
 			vm_codewr.writeReturn()
 		

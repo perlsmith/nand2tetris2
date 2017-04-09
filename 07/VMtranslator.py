@@ -172,6 +172,15 @@ class CodeWriter():
 		dump = re.sub( r"functionName" , functionName , dump )
 		dump = re.sub( r"m5mNargs" , str( 5 + int(nArgs) ) , dump )
 		self.outstream.write( textwrap.dedent( dump) )
+		
+	def callSysInit( self ) :
+		# call Sys.init - no args to push..
+		dump = "\t// call Sys.init\n"
+		dump = dump + re.sub( r"(?P<tag>returnAddress)" , r"\g<tag>_" + str( self.num_calls), self.def_call )
+		# no need to worry about self.num_calls anymore.. so not incrementing here..
+		dump = re.sub( r"functionName" , "Sys.init" , dump )
+		dump = re.sub( r"m5mNargs" , '5', dump )
+		return dump
 
 	def writeFunction( self, functionName, nVars ) :
 		# function functionName nVars
@@ -457,9 +466,7 @@ bootStrap = """
 D = A
 @0
 M = D
-@Sys.init
-0, JMP
-"""
+"""		# note that this still misses the call to Sys.init.. FYI :)
 
 for file in filelist :
 	vm_parser = Parser( file )
@@ -494,6 +501,8 @@ vm_codewr.Close()
 if seen_Sys_init :
 	outfinal = open( final, "w" )
 	outfinal.write( textwrap.dedent( bootStrap ) )
+	dump = vm_codewr.callSysInit()
+	outfinal.write( textwrap.dedent( vm_codewr.callSysInit() ) )
 	outfinal.close()
 	os.system( "cat " + target + " >> " + final )
 	os.system( "rm -f " + target )

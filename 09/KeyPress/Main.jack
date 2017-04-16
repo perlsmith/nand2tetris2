@@ -1,0 +1,32 @@
+// Same as the first assembly language program we wrote, but using a high-level language this time
+// when a key is pressed and held down, paint the screen black, when no key pressed, white..
+
+// enhancing - more fancy ways of clearing and painting the screen..
+
+class Main {
+   function void main() {
+
+      var int i;
+	  var boolean state;
+	  let state = false;
+     
+      let i = 0;
+	  do Screen.setColor( true );
+      while( true ) {
+         if( Keyboard.keyPressed() ) {
+			do Screen.setColor( true );
+			do Screen.drawRectangle( 0, 0, 511, 255 );
+			let state = true;
+		 } else {
+			if( state ) {
+				// do Screen.clearScreen();
+				do Screen.setColor( false );
+				do Circle.PlotCircle( 400, 155, 80 );
+				let state = false;
+			}
+		 }
+      }
+
+      return;
+   }
+}

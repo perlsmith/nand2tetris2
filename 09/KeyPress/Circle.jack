@@ -36,7 +36,7 @@ class Circle {
 		do Circle.PlotVisibleHLine( CX - X, CX + X, CY + Y , 0 , 511 );
 		do Circle.PlotVisibleHLine( CX - X, CX + X, CY - Y , 0 , 511 );
 		do Circle.PlotVisibleHLine( CX - Y, CX + Y, CY + X , 0 , 511 );
-		do Circle.PlotVisibleHLine( CX - Y, CX - Y, CY - X , 0 , 511 );
+		do Circle.PlotVisibleHLine( CX - Y, CX + Y, CY - X , 0 , 511 );
 		return;
 	}
 

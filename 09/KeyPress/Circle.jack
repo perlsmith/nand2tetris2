@@ -51,6 +51,12 @@ class Circle {
 			
 			do Circle.PlotVisibleVLine( CX - Y, CY - X, CY - X + width , 511, 255 );
 			do Circle.PlotVisibleVLine( CX - Y, CY + X - width, CY + X , 511, 255 );
+			if( X + width < Y ) {
+				do Circle.PlotVisibleVLine( CX + X, CY + Y , CY + Y - width, 511, 255 );
+				do Circle.PlotVisibleVLine( CX - X, CY + Y , CY + Y - width, 511, 255 );
+				do Circle.PlotVisibleVLine( CX + X, CY - Y + width, CY - Y, 511, 255 );
+				do Circle.PlotVisibleVLine( CX - X, CY - Y + width, CY - Y, 511, 255 );
+			}
 
 		}
 

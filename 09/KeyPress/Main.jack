@@ -11,6 +11,15 @@ class Main {
 	  var int saveCount;
 	  var boolean state;
 	  var boolean welcomed;
+	  var int Cx;
+	  var int Cy;
+	  var int WHERE;
+	  var int Cr;
+	  
+	  let Cx = 255;
+	  let Cy = 127;
+	  let Cr = 300;
+	  let WHERE = 0;
 
 	  let state = false;
 	  let welcomed = false;
@@ -38,12 +47,46 @@ class Main {
 				let count = saveCount;
 				while( count > 0 ) {
 					if( Keyboard.keyPressed() ) {
-						do Circle.PlotCircle( 511 , 0 , count, -10 );
+						do Circle.PlotCircle( Cx , Cy , count, -33 );
+						let saveCount = count;
 					} else {
 						let saveCount = count;
 						let count = 1;
 					}
-					let count = count - 2;
+					if( count > 50 ) {
+						let count = count - 10;
+					} else {
+						if ( count > 10 ) {
+							let count = count - 2;
+						} else {
+							let count = count - 1;
+						}
+					}
+				} // while
+				if( saveCount < 2){
+					let WHERE = WHERE + 1;
+					if( WHERE > 4){
+						let WHERE = 0;
+					}
+					if( 0 = WHERE ){
+						let Cx = 255;
+						let Cy = 127;
+						let Cr = 300;
+					}
+					if( 1 = WHERE ){
+						let Cx = 0;
+						let Cy = 0;
+						let Cr = 572;
+					}
+					if( 2 = WHERE ){
+						let Cy = 255;
+					}
+					if( 3 = WHERE ){
+						let Cx = 511;
+					}
+					if( 4 = WHERE ){
+						let Cy = 0;
+					}
 				}
 			}
 		 } else {
@@ -51,14 +94,15 @@ class Main {
 				do Screen.setColor( false );
 
 				let count = saveCount;
-				while( count < 572 ) {
+				while( count < Cr ) {
 					if( Keyboard.keyPressed() ){
 						let saveCount = count;
-						let count = 571;
+						let count = Cr;
 					} else {
-						do Circle.PlotCircle( 511 , 0 , count, 10 );
+						do Circle.PlotCircle( Cx , Cy , count, 20 );
+						let saveCount = count;
 					}
-					let count = count + 2;
+					let count = count + 10;
 				}
 
 				let state = false;

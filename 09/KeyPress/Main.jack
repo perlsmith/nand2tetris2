@@ -13,9 +13,9 @@ class Main {
      
       let i = 0;
 	  do Screen.setColor( true );
-	  do Circle.PlotCircle( 255, 127, 150 );
+	  do Circle.PlotCircle( 255, 127, 135, -20 );
 	  do Screen.setColor( false );
-	  do Circle.PlotCircle( 255, 127, 125 );
+	  do Circle.PlotCircle( 255, 127, 125, 0 );
 	  do Output.moveCursor( 12, 20 );
 	  do Output.printString( "Welcome! Press a key ;-)");
 	  do Screen.setColor( true );	  
@@ -36,7 +36,7 @@ class Main {
 					if( Keyboard.keyPressed() ){
 						let count = 571;
 					} else {
-						do Circle.PlotCircle( 511 , 0 , count );
+						do Circle.PlotCircle( 511 , 0 , count, 10 );
 					}
 					let count = count + 1;
 				}

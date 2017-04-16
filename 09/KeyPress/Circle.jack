@@ -5,7 +5,7 @@
 
 class Circle {
 
-   function void PlotCircle( int CX, int CY, int R ) {
+   function void PlotCircle( int CX, int CY, int R , int width ) {
 
 		var int X;
 		var int Y;
@@ -19,7 +19,7 @@ class Circle {
 		let Ych = 1;
 		
 		while( ~( X < Y ) ) {
-			do Circle.Plot4CircleLines( CX, CY, X, Y );
+			do Circle.Plot4CircleLines( CX, CY, X, Y , width);
 			let Y = Y + 1;
 			let Rerr = Rerr + Ych;
 			let Ych = Ych + 2;
@@ -32,12 +32,27 @@ class Circle {
 		return;
 	}
 
-	function void Plot4CircleLines( int CX, int CY, int X, int Y  ) {
+	function void Plot4CircleLines( int CX, int CY, int X, int Y , int width ) {
+		/** no checking on width! Use wisely :) */
+		if( 0 = width ) {
+			do Circle.PlotVisibleHLine( CX - X, CX + X, CY + Y , 511, 255 );
+			do Circle.PlotVisibleHLine( CX - X, CX + X, CY - Y , 511, 255 );
+			do Circle.PlotVisibleHLine( CX - Y, CX + Y, CY + X , 511, 255 );
+			do Circle.PlotVisibleHLine( CX - Y, CX + Y, CY - X , 511, 255 );
+		} else {
+			do Circle.PlotVisibleHLine( CX - X, CX - X + width, CY + Y , 511, 255 );
+			do Circle.PlotVisibleHLine( CX + X - width, CX + X, CY + Y , 511, 255 );
+			
+			do Circle.PlotVisibleHLine( CX - X, CX - X + width, CY - Y , 511, 255 );
+			do Circle.PlotVisibleHLine( CX + X - width, CX + X, CY - Y , 511, 255 );
+			
+			do Circle.PlotVisibleVLine( CX + Y, CY - X, CY - X + width , 511, 255 );
+			do Circle.PlotVisibleVLine( CX + Y, CY + X - width, CY + X , 511, 255 );
+			
+			do Circle.PlotVisibleVLine( CX - Y, CY - X, CY - X + width , 511, 255 );
+			do Circle.PlotVisibleVLine( CX - Y, CY + X - width, CY + X , 511, 255 );
 
-		do Circle.PlotVisibleHLine( CX - X, CX + X, CY + Y , 0 , 511 );
-		do Circle.PlotVisibleHLine( CX - X, CX + X, CY - Y , 0 , 511 );
-		do Circle.PlotVisibleHLine( CX - Y, CX + Y, CY + X , 0 , 511 );
-		do Circle.PlotVisibleHLine( CX - Y, CX + Y, CY - X , 0 , 511 );
+		}
 
 		return;
 	}
@@ -45,23 +60,68 @@ class Circle {
 	function void PlotVisibleHLine( int X1, int X2 , int Y , int Xmax, int Ymax ) {
 	/** requires X1 < X2 for proper function!! */
 	// will use Screen.drawLine to plot the portion that is within rect ( 0, 0 , Xmax, Ymax )
-		if( (Y > 255 ) | ( Y < 0 ) ) {
+		var int lX1;
+		var int lX2;
+		if( (Y > Ymax ) | ( Y < 0 ) ) {	
 			return;
 		} else {
-			if( X1 < 0 ) {
-				if( ( X2 > -1 ) & ( X2 < 512) ) {
-					do Screen.drawLine( 0, Y, X2, Y );
+			if( X1 > X2 ){
+				let lX1 = X2;
+				let lX2 = X1;
+			} else {
+				let lX1 = X1;
+				let lX2 = X2;
+			}
+			if( lX1 < 0 ) {
+				if( ( lX2 > -1 ) & ( lX2 < Xmax) ) {
+					do Screen.drawLine( 0, Y, lX2, Y );
 				} else {
-					if( X2 > 511 ) {
-						do Screen.drawLine( 0, Y, 511 , Y );
+					if( lX2 > Xmax ) {
+						do Screen.drawLine( 0, Y, Xmax , Y );
 					}
 				}
 			} else {
-				if( X1 < 512 ) {
-					if( X2 > 511 ) {
-						do Screen.drawLine( X1, Y, 511 , Y );
+				if( lX1 < (Xmax + 1) ) {
+					if( lX2 > Xmax ) {
+						do Screen.drawLine( lX1, Y, Xmax , Y );
 					} else {
-						do Screen.drawLine( X1, Y, X2, Y );
+						do Screen.drawLine( lX1, Y, lX2, Y );
+					}
+				}
+			}
+			return;
+		}
+	}
+	
+	function void PlotVisibleVLine( int X, int Y1 , int Y2 , int Xmax, int Ymax ) {
+	/** requires Y1 < Y2 for proper function!! */
+	// will use Screen.drawLine to plot the portion that is within rect ( 0, 0 , Xmax, Ymax )
+		var int lY1;
+		var int lY2;
+		if( (X > Xmax ) | ( X < 0 ) ) {	
+			return;
+		} else {
+			if( Y1 > Y2 ){
+				let lY1 = Y2;
+				let lY2 = Y1;
+			} else {
+				let lY1 = Y1;
+				let lY2 = Y2;
+			}
+			if( lY1 < 0 ) {
+				if( ( lY2 > -1 ) & ( lY2 < Ymax) ) {
+					do Screen.drawLine( X, 0, X, lY2 );
+				} else {
+					if( lY2 > Ymax ) {
+						do Screen.drawLine( X, 0, X, Ymax );
+					}
+				}
+			} else {
+				if( lY1 < Ymax  ) {
+					if( lY2 > Ymax ) {
+						do Screen.drawLine( X, lY1, X, Ymax );
+					} else {
+						do Screen.drawLine( X, lY1, X, lY2 );
 					}
 				}
 			}

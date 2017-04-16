@@ -13,13 +13,14 @@ class Main {
      
       let i = 0;
 	  do Screen.setColor( true );
-	  do Circle.PlotCircle( 255, 127, 150, 40 );
+	  do Circle.PlotCircle( 255, 127, 150 );
 	  do Screen.setColor( false );
-	  do Circle.PlotCircle( 255, 127, 125, 0 );
+	  do Circle.PlotCircle( 255, 127, 125 );
 	  do Output.moveCursor( 12, 20 );
 	  do Output.printString( "Welcome! Press a key ;-)");
 	  do Screen.setColor( true );	  
 	  
+
       while( true ) {
          if( Keyboard.keyPressed() ) {
 			do Screen.setColor( true );
@@ -29,15 +30,17 @@ class Main {
 			if( state ) {
 				// do Screen.clearScreen();
 				do Screen.setColor( false );
+
 				let count = 0;
 				while( count < 572 ) {
 					if( Keyboard.keyPressed() ){
 						let count = 571;
 					} else {
-						do Circle.PlotCircle( 511 , 0 , count, 10 );
+						do Circle.PlotCircle( 511 , 0 , count );
 					}
 					let count = count + 1;
 				}
+
 				let state = false;
 			}
 		 }

@@ -1,0 +1,69 @@
+/** just a library. Uses Screen from the standard Jack API */
+// credit John Kennedy Santa Monica College
+/** draws a FILLED circle..  */
+// call using do Circle.PlotCircle(center-X, center-Y, radius ); 
+
+class Circle {
+
+   function void PlotCircle( int CX, int CY, int R) {
+
+		var int X;
+		var int Y;
+		var int Xch;
+		var int Ych;
+		var int Rerr;
+		
+		let X = R;
+		let Y = 0;
+		let Xch = 1 - R - R;
+		let Ych = 1;
+		
+		while( ~( X < Y ) ) {
+			do Circle.Plot4CircleLines( CX, CY, X, Y );
+			let Y = Y + 1;
+			let Rerr = Rerr + Ych;
+			let Ych = Ych + 2;
+			if( ( Rerr + Rerr + Xch ) > 0 ) {
+				let X = X - 1;
+				let Rerr = Rerr + Xch;
+				let Xch = Xch + 2;
+			}
+		}
+		return;
+	}
+
+	function void Plot4CircleLines( int CX, int CY, int X, int Y ) {
+		do Circle.PlotVisibleHLine( CX - X, CX + X, CY + Y , 0 , 511 );
+		do Circle.PlotVisibleHLine( CX - X, CX + X, CY - Y , 0 , 511 );
+		do Circle.PlotVisibleHLine( CX - Y, CX + Y, CY + X , 0 , 511 );
+		do Circle.PlotVisibleHLine( CX - Y, CX - Y, CY - X , 0 , 511 );
+		return;
+	}
+
+	function void PlotVisibleHLine( int X1, int X2 , int Y , int Xmax, int Ymax ) {
+	/** requires X1 < X2 for proper function!! */
+	// will use Screen.drawLine to plot the portion that is within rect ( 0, 0 , Xmax, Ymax )
+		if( (Y > 255 ) | ( Y < 0 ) ) {
+			return;
+		} else {
+			if( X1 < 0 ) {
+				if( ( X2 > -1 ) & ( X2 < 512) ) {
+					do Screen.drawLine( 0, Y, X2, Y );
+				} else {
+					if( X2 > 511 ) {
+						do Screen.drawLine( 0, Y, 511 , Y );
+					}
+				}
+			} else {
+				if( X1 < 512 ) {
+					if( X2 > 511 ) {
+						do Screen.drawLine( X1, Y, 511 , Y );
+					} else {
+						do Screen.drawLine( X1, Y, X2, Y );
+					}
+				}
+			}
+			return;
+		}
+	}
+}

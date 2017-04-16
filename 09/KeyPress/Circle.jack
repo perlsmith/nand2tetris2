@@ -5,7 +5,7 @@
 
 class Circle {
 
-   function void PlotCircle( int CX, int CY, int R) {
+   function void PlotCircle( int CX, int CY, int R, int width ) {
 
 		var int X;
 		var int Y;
@@ -19,7 +19,7 @@ class Circle {
 		let Ych = 1;
 		
 		while( ~( X < Y ) ) {
-			do Circle.Plot4CircleLines( CX, CY, X, Y );
+			do Circle.Plot4CircleLines( CX, CY, X, Y , R, width);
 			let Y = Y + 1;
 			let Rerr = Rerr + Ych;
 			let Ych = Ych + 2;
@@ -32,11 +32,26 @@ class Circle {
 		return;
 	}
 
-	function void Plot4CircleLines( int CX, int CY, int X, int Y ) {
-		do Circle.PlotVisibleHLine( CX - X, CX + X, CY + Y , 0 , 511 );
-		do Circle.PlotVisibleHLine( CX - X, CX + X, CY - Y , 0 , 511 );
-		do Circle.PlotVisibleHLine( CX - Y, CX + Y, CY + X , 0 , 511 );
-		do Circle.PlotVisibleHLine( CX - Y, CX + Y, CY - X , 0 , 511 );
+	function void Plot4CircleLines( int CX, int CY, int X, int Y , int R, int width ) {
+		if( ( width > 0 ) & (width < R ) ) {
+			do Circle.PlotVisibleHLine( CX - X, CX - X + width, CY + Y , 0 , 511 );
+			do Circle.PlotVisibleHLine( CX + X - width, CX + X, CY + Y , 0 , 511 );
+			
+			do Circle.PlotVisibleHLine( CX - X, CX - X + width, CY - Y , 0 , 511 );
+			do Circle.PlotVisibleHLine( CX + X - width, CX + X, CY - Y , 0 , 511 );
+			
+			do Circle.PlotVisibleHLine( CX - Y, CX - Y + width, CY + X , 0 , 511 );
+			do Circle.PlotVisibleHLine( CX + Y - width, CX + Y, CY + X , 0 , 511 );
+			
+			do Circle.PlotVisibleHLine( CX - Y, CX - Y + width, CY - X , 0 , 511 );	
+			do Circle.PlotVisibleHLine( CX + Y - width, CX + Y, CY - X , 0 , 511 );
+			
+		} else {
+			do Circle.PlotVisibleHLine( CX - X, CX + X, CY + Y , 0 , 511 );
+			do Circle.PlotVisibleHLine( CX - X, CX + X, CY - Y , 0 , 511 );
+			do Circle.PlotVisibleHLine( CX - Y, CX + Y, CY + X , 0 , 511 );
+			do Circle.PlotVisibleHLine( CX - Y, CX + Y, CY - X , 0 , 511 );
+		}
 		return;
 	}
 

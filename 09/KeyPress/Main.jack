@@ -8,10 +8,16 @@ class Main {
 
       var int i;
 	  var int count;
+	  var int saveCount;
 	  var boolean state;
+	  var boolean welcomed;
+
 	  let state = false;
+	  let welcomed = false;
      
       let i = 0;
+	  let count = 0;
+	  let saveCount = 0;
 	  do Screen.setColor( true );
 	  do Circle.PlotCircle( 255, 127, 135, -20 );
 	  do Screen.setColor( false );
@@ -23,22 +29,36 @@ class Main {
 
       while( true ) {
          if( Keyboard.keyPressed() ) {
-			do Screen.setColor( true );
-			do Screen.drawRectangle( 0, 0, 511, 255 );
+		 	do Screen.setColor( true );
 			let state = true;
+			if( ~welcomed ) {
+				do Screen.drawRectangle( 0, 0, 511, 255 );
+				let welcomed = true;
+			} else {
+				let count = saveCount;
+				while( count > 0 ) {
+					if( Keyboard.keyPressed() ) {
+						do Circle.PlotCircle( 511 , 0 , count, -10 );
+					} else {
+						let saveCount = count;
+						let count = 1;
+					}
+					let count = count - 2;
+				}
+			}
 		 } else {
 			if( state ) {
-				// do Screen.clearScreen();
 				do Screen.setColor( false );
 
-				let count = 0;
+				let count = saveCount;
 				while( count < 572 ) {
 					if( Keyboard.keyPressed() ){
+						let saveCount = count;
 						let count = 571;
 					} else {
 						do Circle.PlotCircle( 511 , 0 , count, 10 );
 					}
-					let count = count + 1;
+					let count = count + 2;
 				}
 
 				let state = false;

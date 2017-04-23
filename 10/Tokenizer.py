@@ -66,7 +66,6 @@ else :
 		print( "Only operates on .jack files" )
 		sys.exit()
 
-vm_codewr = CodeWriter( target )
 
 
 for file in filelist :

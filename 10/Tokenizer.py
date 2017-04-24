@@ -3,6 +3,8 @@
 # File.jack --> FileT.xml
 # tokenizer only outputs all tokens seen without recognizing any patterns - that's the
 # syntax analyzer - FYI
+# this is "phase 1 " :) For phase 2, we need a way to code the rules elegantly. The
+# proposed method of having a function for each statement type doesn't seem elegant..
 
 
 import sys

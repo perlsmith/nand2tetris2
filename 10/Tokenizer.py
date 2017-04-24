@@ -25,6 +25,7 @@ class Parser():
 	def hasMoreAtoms( self ):
 		if ( '' == self.nextline ) :
 			self.nextline = self.instream.readline();
+			# pdb.set_trace()
 			if( 'normal' == self.mode ) :
 				self.nextline = re.sub( r"/\*.+?\*/" , '' , self.nextline ) # in a non-greedy way, swallow up all comments
 				# only allowed to do this in normal mode - if you were already in comment mode, you'd have to eat up everything
@@ -35,7 +36,9 @@ class Parser():
 			elif( 'comment' == self.mode ) :
 				if ( re.search( r"\*/" , self.nextline ) ) :
 					self.mode = 'normal'
-				self.nextline = re.sub( r"^.+?\*/" , '' , self.nextline )	# now, swallow up all till the terminator
+				else :
+					self.nextline = "\n"	# swallow all
+				self.nextline = re.sub( r"^.+?\*/" , '' , self.nextline )	# now, swallow up all till the first(!) terminator
 				self.nextline = re.sub( r"/\*.+?\*/" , '' , self.nextline ) # in a non-greedy way, swallow up all comments
 				if( re.search( r"/\*" , self.nextline ) ) :	# something escaped the earlier lunch..
 					self.mode = "comment"
@@ -116,6 +119,7 @@ for file in filelist :
 	while j_parser.hasMoreAtoms():
 		atom = j_parser.advance()
 		if ( 'START' == state ) :
+			buffer = ''
 			if ( re.match( r"\d"  , atom )  ):
 				state = "INTCONST"
 				buffer = atom
@@ -153,6 +157,7 @@ for file in filelist :
 				j_TknWriter.writeToken( "stringConstant" , buffer )
 			else :
 				buffer = buffer + atom
+
 				
 	j_TknWriter.Close();
 

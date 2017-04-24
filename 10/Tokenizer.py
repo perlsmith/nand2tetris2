@@ -20,31 +20,39 @@ class Parser():
 	def __init__( self, filename ):
 		self.instream = open( filename, "r")	# be nice to do some exception handling :)
 		# need to support directories - pending..
-		match = re.match( "^.+?([^\\/]+)\.vm" , filename )		# dir1\dir2\name.vm --> name is what we capture
-		self.base = match.group(1)
+		self.buffer = ''
 		
-	def hasMoreCommands( self ):
-		self.nextline = self.instream.readline();
+	def hasMoreAtoms( self ):
+		if ( '' == self.nextline ) :
+			self.nextline = self.instream.readline();
+		else : 		# there are tokens to process
+			return True
+			
 		if not self.nextline:
 			return False
 		else:
-			self.command = self.nextline.split()
-			if ( 0 == len( self.command) or '//' == self.command[0] ):
-				return self.hasMoreCommands()
-			else:
-				return True
+			return True
 			
-	def advance( self ):
-		self.instr = self.command[0]
-		if len( self.command ) > 1 :
-			self.args1 = self.command[1]
-			if len( self.command ) > 2 :
-				self.args2 = self.command[2]
+	def advance( self ):	# will only be called when nextline is not ''
+		atom = self.buffer[0]
+		self.buffer = self.buffer[1:]
+		return atom
 			
 	
-
+class TknWriter() :
+	# also implements the translation for <,>, & --> &lt; &gt; &amp;
+	specials = {'<' : r"&lt;" , '>' : r"&gt;" , '&' : r"&amp;" }
+	
+	def __init__( self, outfile ):
+		self.outstream = open( outfile, "w" )
+		self.outstream.write( r"<)
+		
+	def writeToken( self, type, value ) :
 		
 
+	def Close( self ) :
+		
+		
 # Main program :
 
 # if a directory "Adder" is input containing .vm files, then the output is Adder/File1T.xml - for each..
@@ -53,7 +61,10 @@ class Parser():
 
 source = sys.argv[1]
 # pdb.set_trace()	
-	
+
+state = 'START';
+buffer = '';
+
 if os.path.isdir( source ) :
 	# start off writing to source/source.asm by processing every .vm file you encounter
 	filelist = os.popen( "ls " + source + "/*.jack").read().split()
@@ -69,12 +80,31 @@ else :
 
 
 for file in filelist :
-	vm_parser = Parser( file )
+	j_parser = Parser( file )
 	target = re.sub( "\.jack" , "T.xml" , file )
+	j_TknWriter = TknWriter( target )
 
-	while vm_parser.hasMoreCommands():
-		vm_parser.advance()
-#		print( vm_parser.instr)
+	while j_parser.hasMoreCommands():
+		atom = j_parser.advance()
+		if ( 'START' == state ) :
+			if ( re.match( r"\d" ) , atom ) :
+				state = "INTCONST"
+				buffer = atom
+			elif ( re.match( r"[_a-zA-Z]" , atom ) ) :
+				state = "WORD"
+				buffer = atom
+			elif ( re.match( r"[{}().,;+-\[\]/&|<>=~]|\*" , atom ) ) :
+				j_TknWriter.writeToken( "SYM" , atom )
+			elif ( re.match( '"') , atom ) :
+				state = "STRCONST"
+		elif ( 'WORD' == state ) :
+			if ( re.match( r"_[0-9a-zA-Z]" ) , atom ) :
+				buffer = buffer + atom
+			elif ( re.match( r"[{}().,;+-\[\]/&|<>=~]|\*" , atom ) ) :
+				j_TknWriter.writeToken( "WORD" , buffer )
+				j_TknWriter.writeToken( "SYM" , atom )
+			else :
+
 
 		
 

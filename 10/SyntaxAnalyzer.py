@@ -12,6 +12,11 @@
 # parse that using split($) to get the rule
 # while analyzing, you "look for" what the rule specifies and eat accordingly.
 # when you expect x and don't get it, you just exit.. very primitive analyzer..
+# what you're looking for is based on state - you may already be in a rule..
+# if not, you loop through all rules..
+# actually, you do start off looking for a class. One per file.. that's dictated by program
+# structure..
+
 
 import sys
 import re
@@ -20,7 +25,7 @@ import textwrap
 import os 	# to check if a directory has been provided
 import subprocess # to be able to get files using *.vm
 
-class Parser():
+class Analyzer():
 	def __init__( self, filename ):
 		self.instream = open( filename, "r")	# be nice to do some exception handling :)
 		# need to support directories - pending..
@@ -106,68 +111,26 @@ state = 'START';
 buffer = '';
 
 if os.path.isdir( source ) :
-	# start off writing to source/source.asm by processing every .vm file you encounter
-	filelist = os.popen( "ls " + source + "/*.jack").read().split()
+	# start off writing to source/fileAnalyzed.xml by processing every *Tokens.xml file you encounter
+	filelist = os.popen( "ls " + source + "/*Tokens.xml").read().split()
 	if len( filelist ) < 1 :
-		print( "Please check if the directory has .jack files in it" )
+		print( "Please check if the directory has *Tokens.xml files in it (Eg. SquareTokens.xml" )
 else :
-	if re.search( r"\.jack" , source ) :
+	if re.search( r"\Tokens.xml" , source ) :
 		filelist = [source]
 	else :
-		print( "Only operates on .jack files" )
+		print( "Only operates on *Tokens.xml files" )
 		sys.exit()
 
 
 
 for file in filelist :
 	j_parser = Parser( file )
-	target = re.sub( "\.jack" , "Tokens.xml" , file )
+	target = re.sub( "Tokens\.xml" , "Analyzed.xml" , file )
 	j_TknWriter = TknWriter( target )
 
 	while j_parser.hasMoreAtoms():
-		atom = j_parser.advance()
-		if ( 'START' == state ) :
-			buffer = ''
-			if ( re.match( r"\d"  , atom )  ):
-				state = "INTCONST"
-				buffer = atom
-			elif ( re.match( r"[_a-zA-Z]" , atom ) ) :
-				state = "WORD"
-				buffer = atom
-			elif ( re.match( r"[{}().,;+-\[\]/&|<>=~]|\*" , atom ) ) :
-				j_TknWriter.writeToken( "SYM" , atom )
-			elif ( '"' ==  atom ) :
-				state = "STRCONST"
-		elif ( 'WORD' == state ) :
-			if ( re.match( r"[_0-9a-zA-Z]" , atom ) ) :
-				buffer = buffer + atom
-			elif ( re.match( r"[{}().,;+-\[\]/&|<>=~]|\*" , atom ) ) :
-				j_TknWriter.writeToken( "WORD" , buffer )
-				j_TknWriter.writeToken( "SYM" , atom )
-				state = 'START'
-			else :
-				j_TknWriter.writeToken( "WORD" , buffer )
-				state = 'START'
-		elif ( 'INTCONST' == state ) :
-			if ( re.match( r"\d"  , atom ) ) :
-				state = "INTCONST"
-				buffer = buffer + atom
-			elif( re.match( r"[{}().,;+-\[\]/&|<>=~]|\*" , atom ) ) :
-				j_TknWriter.writeToken( "integerConstant" , buffer )
-				j_TknWriter.writeToken( "SYM" , atom )
-				state = 'START'
-			else :
-				j_TknWriter.writeToken( "integerConstant" , buffer )
-				state = 'START'
-		elif ( 'STRCONST' == state ) :
-			if ( '"' == atom ) :
-				state = 'START'
-				j_TknWriter.writeToken( "stringConstant" , buffer )
-			else :
-				buffer = buffer + atom
 
-				
-	j_TknWriter.Close();
 
 		
 

@@ -7,9 +7,11 @@
 
 # class : 'class className '{' classVarDec* subroutineDec* '}'
 # we code :
-# rules = {
-# 		'class' : '
-# }
+# rules = {}
+# rules['class'] = 'class$1$-className$1${$1$-classVarDec$*$-subroutineDec$*$}$1'
+# parse that using split($) to get the rule
+# while analyzing, you "look for" what the rule specifies and eat accordingly.
+# when you expect x and don't get it, you just exit.. very primitive analyzer..
 
 import sys
 import re

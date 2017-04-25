@@ -5,6 +5,7 @@
 # syntax analyzer - FYI
 # this is "phase 1 " :) For phase 2, we need a way to code the rules elegantly. The
 # proposed method of having a function for each statement type doesn't seem elegant..
+# currently no support for double-quote - maybe need to add detection of escaped (\") double quote?
 
 
 import sys

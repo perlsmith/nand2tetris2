@@ -16,6 +16,9 @@
 # if not, you loop through all rules..
 # actually, you do start off looking for a class. One per file.. that's dictated by program
 # structure..
+# per the lecture - if you see a non-terminal construct, you end up with another look-for cycle (or a call to a routine as Shimon says)
+# for now, we're going to assume the Tokenizer has been run and we operate on the fileTokens.xml output
+# later, we'll combine into a single program
 
 
 import sys
@@ -23,17 +26,20 @@ import re
 import pdb	# to be able to use the debugger
 import textwrap
 import os 	# to check if a directory has been provided
-import subprocess # to be able to get files using *.vm
+import subprocess # to be able to get files using *.xml
 
 class Analyzer():
+	rules = {}
+	elements = {}
+	# note : 1 => 1, 2 => 0 or 1 (?) , 3 => 0 or more (*)
+	rules['class'] = ['class' , 1, 'className' , 1, '{' , 1, ,  'classVarDec' , 3, 'subroutineDec' , 3 , '}' , 1 ]
+	elements['class'] = ['keyword', 'identifier' , 'symbol', 'rule' , 'rule' , 'symbol' ]
+
 	def __init__( self, filename ):
 		self.instream = open( filename, "r")	# be nice to do some exception handling :)
 		# need to support directories - pending..
 		self.nextline = ''
-		self.mode = 'normal'		# to handle block comments - the tough guys :)
 
-# handling comments is the hard part
-#  ..... */   ..... /* -- if you were in comment mode, then you have to stay in comment mode :)
 		
 	def hasMoreAtoms( self ):
 		if ( '' == self.nextline ) :

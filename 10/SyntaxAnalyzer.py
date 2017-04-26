@@ -56,6 +56,8 @@ class Analyzer():
 	elements['_params'] = ['rule' , 'rule' ]
 	rules['_param'] = ['type' , 1, 'varName' , 1 ]
 	elements['_param'] = ['rule', 'identifier']
+	rules['_addlParam' ] = [ ',' , 1 , 'varName' , 1]
+	elements['_addlParam' ] = [ 'symbol' , 'identifier' ]
 	rules['subroutineBody'] = ['{' , 1 , 'varDec' , 3 , 'statements' , 1 , '}' , 1 ]
 	elements['subroutineBody'] = ['symbol' , 'rule', 'rule', 'symbol' ]
 	rules['varDec'] = ['var' , 1, 'type' , 1, 'varName' , '_addlVarDec' , 3 , ';' , 1 ]
@@ -78,6 +80,33 @@ class Analyzer():
 	elements['doStatement'] = ['keyword' , 'rule' , 'symbol' ]
 	rules['returnStatement'] = ['return' , 1 , 'expression' , 2 , ';' , 1 ]
 	elements['returnStatement'] = ['keyword' , 'rule' , 'symbol' ]
+	rules['expression'] = ['term' , 1 , '_subExp' , 3 ]
+	elements['expression'] = ['rule' , 'rule' ]
+	rules['_subExp'] = ['op' , 1 , 'term' , 1 ]
+	elements['_subExp'] = ['+,-,*,/,&,|,<,>,=' , 'rule']	# special case - CSV - the rule-entry - in this case op will go out as <op> CSV-item </op>
+	rules['term'] = ['integerConstant|stringConstant|keywordConstant||varName|_arrayElem|subroutineCall|_paranthExp|_unOpTerm]
+	elements['term'] = ['literal||rule']	# literal is special - you just look for what is in the rules[] and print that as the token name..
+	rules['_arrayElem'] = ['varName' , 1 , '[' , 1 , 'expression' , 1 , ']' , 1 ]
+	elements['_arrayElem'] = ['rule' , 'symbol', 'rule' , 'symbol' ]
+	rules['_paranthExp'] = ['(' , 1 , 'expression' , 1, ')' ]
+	elements['_paranthExp'] = ['symbol' , 'rule' , 'symbol' ]
+	rules['_unOpTerm' ] = ['unaryOp' , 1 , 'term' , 1 ]
+	elements['_unOpTerm' ] = ['-,~', 'rule']	# this is another special case - a CSV -- you put the rule-entry - in this case, <unaryOp>
+	rules['subroutineCall'] = [ '_simpleCall|_classMethCall' , 1 ]
+	elements['subroutineCall'] = [ 'rule' ]
+	rules['_simpleCall' ] = [ 'subroutineName' , 1 , '(' , 1 , 'expressionList' , 1 , ')' , 1 ]
+	elements['_simpleCall' ] = [ 'identifier' , 'symbol' , 'rule' , 'symbol' ]
+	rules['_classMethCall' ] = [ 'varName' , 1 , '.', 1 , 'subroutineName' , 1 , '(' , 'expressionList' , 1 , ')' , 1 ]
+	elements['_classMethCall' ] = [ 'identifier' , 'symbol' , 'identifier' , 'symbol' , 'rule' , 'symbol' ]
+	rules['expressionList' ] = [ '_expressions' , 2 ] 
+	elements['expressionList'] = [ 'rule']
+	rules['_expressions'] = [ 'expression' , 1 , '_addlExpr' , 3 ]
+	elements['_expressions'] = ['rule' , 'rule']
+	rules['_addlExpr'] = [',' , 1 , 'expression' , 1 ]
+	elements['_addlExpr'] = ['symbol' , 'rule']
+	rules['keywordConstant' ] = ['true|false|'null'|'this']
+	elements['keywordConstant'] = ['literal']
+	
 	
 	
 	

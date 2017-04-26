@@ -20,6 +20,11 @@
 # for now, we're going to assume the Tokenizer has been run and we operate on the fileTokens.xml output
 # later, we'll combine into a single program
 
+# how should the execution be architected in an OO way? one class - with a get token method and a write 
+# token method.. and a check token method and a get rule method.. you start off looking for a class declaration..
+
+# since expression parsing is L2, when you're checking expressions you'll have to eat an additional token into the buffer
+
 
 import sys
 import re
@@ -34,6 +39,48 @@ class Analyzer():
 	# note : 1 => 1, 2 => 0 or 1 (?) , 3 => 0 or more (*)
 	rules['class'] = ['class' , 1, 'className' , 1, '{' , 1, ,  'classVarDec' , 3, 'subroutineDec' , 3 , '}' , 1 ]
 	elements['class'] = ['keyword', 'identifier' , 'symbol', 'rule' , 'rule' , 'symbol' ]
+	rules['classVarDec'] = ['static|field' , 1 , 'type' , 1 , 'varName' , 1 , '_addlVarDec', 3  , ';' , 1 ]
+	elements['classVarDec'] = ['keyword' , 'rule' , 'identifier' , 'rule']
+	rules['_addlVarDec'] = [',' , 1, 'varName', 1 ]		# _name implies this rule will not generate a token
+	elements['_addlVarDec'] = ['symbol', 'identifier']
+	rules['type'] = ['int|char|boolean||className' , 1]
+	elements['type'] = ['keyword||identifier']
+	rules['subroutineDec'] = ['constructor|function|method' , 1 , 'void||type' , 1 , 'subroutineName' , 1 , '(', 1, 'parameterList' , 1 , ')' , 'subroutineBody' , 1]
+	elements['subroutineDec'] = ['keyword' , 'keyword||rule' , 'identifier' , 'symbol' , 'rule', 'symbol', 'rule' ]
+	# what this means is that you first look for keyword : void - if you see void, then your put down <keyword> void </keyword> else
+	# you look at type - which is again looking for keyword : int|char|boolean .... you get the idea..
+	
+	rules['parameterList'] = [ '_params' , 2 ]
+	elements[parameterList'] = ['rule']
+	rules['_params'] = [ '_param' , 1 , '_addlParam' , 3 ]
+	elements['_params'] = ['rule' , 'rule' ]
+	rules['_param'] = ['type' , 1, 'varName' , 1 ]
+	elements['_param'] = ['rule', 'identifier']
+	rules['subroutineBody'] = ['{' , 1 , 'varDec' , 3 , 'statements' , 1 , '}' , 1 ]
+	elements['subroutineBody'] = ['symbol' , 'rule', 'rule', 'symbol' ]
+	rules['varDec'] = ['var' , 1, 'type' , 1, 'varName' , '_addlVarDec' , 3 , ';' , 1 ]
+	elements['varDec'] = ['keyword' , 'rule' , 'identifier' , 'rule' , 'symbol' ]
+	rules['statements'] = ['_statement' , 3 ]	# this was a curve ball - didn't realize they don't want <statement> ha!
+	elements['statements'] = ['rule']
+	rules['_statement'] = ['letStatement|ifStatement|whileStatement|doStatement|returnStatement']
+	elements['_statement'] = ['rule']
+	rules['letStatement'] = ['let' , 1 , 'varName' , 1 , '_index' , 2 , '=' , 1 , 'expression' , 1 , ';' , 1 ]
+	elements['letStatement'] = ['keyword' , 'identifier', 'rule' , 'symbol' , 'rule', 'symbol' ]
+	rules['_index'] = ['[' , 1 , 'expression' , 1 , ']' , 1 ]
+	elements['_index'] = [ 'symbol' , 'rule' , 'symbol' ]
+	rules['ifStatement'] = ['if' , 1 , '(' , 1 , 'expression' , 1 , ')' , '{' , 1 , 'statements' , '}' , 1 , '_elseBlock' , 2 ]
+	elements['ifStatement'] = ['keyword' , 'symbol', 'rule', 'symbol', 'symbol', 'rulel , 'symbol' , 'rule' ]
+	rules['_elseBlock' ] = ['else' , 1 , '{' , 1 , 'statements' , 1 , '}' , 1 ]
+	elements['_elseBlock' ] = [ 'keyword', 'symbol', 'rule' , 'symbol' ]
+	rules['whileStatement'] = ['while', 1 , '(' , 'expression' , 1 , ')' , '{' , 1 , 'statements' , 1 , '}' , 1 ]
+	elements['whileStatement'] = ['keyword' , 'symbol' , 'rule', 'symbol' , 'symbol' , 'rule' , 'symbol' ]
+	rules['doStatement'] = ['do' , 1 , 'subroutineCall' , 1 , ';' , 1 ]
+	elements['doStatement'] = ['keyword' , 'rule' , 'symbol' ]
+	rules['returnStatement'] = ['return' , 1 , 'expression' , 2 , ';' , 1 ]
+	elements['returnStatement'] = ['keyword' , 'rule' , 'symbol' ]
+	
+	
+	
 
 	def __init__( self, filename ):
 		self.instream = open( filename, "r")	# be nice to do some exception handling :)
@@ -43,7 +90,7 @@ class Analyzer():
 		
 	def hasMoreAtoms( self ):
 		if ( '' == self.nextline ) :
-			self.nextline = self.instream.readline();
+			self.nextline = self.instream.readline()
 			# pdb.set_trace()
 			if( 'normal' == self.mode ) :
 				self.nextline = re.sub( r"/\*.+?\*/" , '' , self.nextline ) # in a non-greedy way, swallow up all comments

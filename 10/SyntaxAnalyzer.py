@@ -34,8 +34,8 @@ import os 	# to check if a directory has been provided
 import subprocess # to be able to get files using *.xml
 
 class Analyzer():
-	rules = {}
-	elements = {}
+	rules = {}		# tells you what to look for
+	elements = {}	# tells you what tag you're going to write to the output..
 	# note : 1 => 1, 2 => 0 or 1 (?) , 3 => 0 or more (*)
 	rules['class'] = ['class' , 1, 'className' , 1, '{' , 1, ,  'classVarDec' , 3, 'subroutineDec' , 3 , '}' , 1 ]
 	elements['class'] = ['keyword', 'identifier' , 'symbol', 'rule' , 'rule' , 'symbol' ]
@@ -113,8 +113,11 @@ class Analyzer():
 
 	def __init__( self, filename ):
 		self.instream = open( filename, "r")	# be nice to do some exception handling :)
-		# need to support directories - pending..
+		target = re.sub( "Tokens\.xml" , "Analyzed.xml" , filename )
+		self.outstream = open( target, "w" )
 		self.nextline = ''
+		
+	def analyze( self, ruleName ) :
 
 		
 	def hasMoreAtoms( self ):
@@ -152,37 +155,11 @@ class Analyzer():
 		self.nextline = self.nextline[1:]
 		return atom
 			
-	
-class TknWriter() :
-	# also implements the translation for <,>, & --> &lt; &gt; &amp;
-	specials = {'<' : r"&lt;" , '>' : r"&gt;" , '&' : r"&amp;" }
-	keywds = ['class', 'constructor', 'function', 'method', 'field', 'static', 'var', 'int', 'char', 'boolean', 'void', 'true', 'false', 'null', 'this', 'let', 'do', 'if', 'else', 'while', 'return']
 
-	
-	def __init__( self, outfile ):
-		self.outstream = open( outfile, "w" )
-		self.outstream.write( "<tokens>\n")
-		
-	def writeToken( self, type, value ) :	# WORD, stringConstant, SYM, integerConstant and WORD will generate identifier or keyword..
-		if( "WORD" == type ) :
-			if( value in self.keywds ) :
-				self.outstream.write( "" + '<keyword> ' + value + " </keyword>\n" )
-			else :
-				self.outstream.write( "" + '<identifier> ' + value + " </identifier>\n" )
-		elif ( "SYM" == type ) :
-			if( value in self.specials.keys() ) :
-				value = self.specials[value]
-			self.outstream.write( "" + '<symbol> ' + value + " </symbol>\n" )
-		else :
-			self.outstream.write( "" + '<' + type + '> ' + value + ' </' + type + ">\n" )
-		
-
-	def Close( self ) :
-		self.outstream.write( "</tokens>\n")
-		
+			
 # Main program :
 
-# if a directory "Adder" is input containing .vm files, then the output is Adder/File1T.xml - for each..
+# if a directory "Adder" is input containing .jack files, then the output is Adder/File1.xml - for each..
 
 # if no files in the specified source, then die..
 
@@ -207,9 +184,8 @@ else :
 
 
 for file in filelist :
-	j_parser = Parser( file )
-	target = re.sub( "Tokens\.xml" , "Analyzed.xml" , file )
-	j_TknWriter = TknWriter( target )
+	j_analyzer = Analyzer( file )	# this does an init and also open the target for writing..
+	j_analizer.analyze()	# will also write
 
 	while j_parser.hasMoreAtoms():
 

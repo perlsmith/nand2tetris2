@@ -107,9 +107,6 @@ class Analyzer():
 	rules['keywordConstant' ] = ['true|false|'null'|'this']
 	elements['keywordConstant'] = ['literal']
 	
-	
-	
-	
 
 	def __init__( self, filename ):
 		self.instream = open( filename, "r")	# be nice to do some exception handling :)
@@ -117,10 +114,14 @@ class Analyzer():
 		self.outstream = open( target, "w" )
 		self.nextline = ''
 		
+	# this is the main operator that uses other methods - maybe an OO noob style deprecated, but..	
 	def analyze( self, ruleName ) :
+		# will call itself recursively when it uses self.rules[] to process the input rule..
+		# get a token, see if it fits, move on.
+		
 
 		
-	def hasMoreAtoms( self ):
+	def hasMoreTokens( self ):
 		if ( '' == self.nextline ) :
 			self.nextline = self.instream.readline()
 			# pdb.set_trace()

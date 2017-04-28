@@ -125,27 +125,36 @@ class Analyzer():
 	# elements[xyz][] -- if you see 'rule' that results in another call to analyze()
 	#					-- if you see || then you split on || and process the resulting list in OR fashion - first one that hits terminates
 	#					-- if you see 'literal' then you look for tokenName matching what rules[][] specifies
+	# open question at this point - how do you know if you should terminate with an error or if you
+	# are in a ? or * so you just move on to the next thing? You need a token buffer where you store
+	# stuff so you can backtrack - when you're in a ? or * - so the next rule can use what you've read in so far.. :)
 	def analyze( self, ruleName ) :
+		pdb.set_trace()
 		# will call itself recursively when it uses self.rules[] to process the input rule..
 		# get a token, see if it fits, move on.
 		buffer = ''
 		rule = self.rules[ruleName]
-		whatIs = elements[ruleName]
-		numR = len( rule ) / 2
+		whatIs = self.elements[ruleName]
+		numR = len( rule ) >> 1
 		for i in range( numR ) :
 			seekToken = rule[2*i]
 			count = rule[2*i + 1]	# 1 => 1; 2 => ? ; 3 => *
 			# symbol can't be combined with anything else in an OR.. so check for that first.
-			if ('symbol' == whatIs ) :
+			if ('symbol' == whatIs[i] ) :
 				# use seekToken as a regex
-				if( re.match( seekToken , self.token ) ) :
-					buffer = buffer + self.token
-				else
-					print "Line num : " + str(self.lineN) + "expecting : " + seekToken + "but got \n" + self.nextline
+				if ( not self.hasMoreTokens() ) :
+					print( "Prematurely out of tokens.." )
 					sys.exit()
+				if( re.match( seekToken , self.token ) ) :
+					buffer = buffer + self.nextline
+				else :
+					self.error = "Line num : " + str(self.lineN) + "expecting : " + seekToken + "but got \n" + self.nextline 
+					return ''
+			else :
+				types = whatIs[i].split('||')
 				
-			types = whatIs.split('||')
 			
+		return buffer
 			# in the case of 2 or 3, you only add whatIs if you actually find the patterns..
 		
 		
@@ -157,6 +166,8 @@ class Analyzer():
 		if not self.nextline:
 			return False
 		else:
+			if( re.match( '<tokens>' , self.nextline ) ) :
+				self.nextline = self.instream.readline()
 			match = re.match( "^\s*<(\S+)>\s*(\S+)" , self.nextline )
 			if( match ) :
 				self.tokenName = match.group(1)
@@ -169,9 +180,6 @@ class Analyzer():
 				sys.exit()
 			return True
 			
-	def advance( self ):	# will only be called when nextline is not ''
-		
-		return 
 			
 
 			
@@ -203,8 +211,9 @@ else :
 
 for file in filelist :
 	j_analyzer = Analyzer( file )	# this does an init and also open the target for writing..
-	j_analyzer.Write( j_analyzer.analyze('class') )	# will also write
-
+#	j_analyzer.Write( j_analyzer.analyze('class') )	# will also write
+	print( j_analyzer.analyze('_unOpTerm') )
+	print( j_analyzer.analyze('_unOpTerm') )
 
 
 		

@@ -37,7 +37,7 @@ class Analyzer():
 	rules = {}		# tells you what to look for
 	elements = {}	# tells you what tag you're going to write to the output..
 	# note : 1 => 1, 2 => 0 or 1 (?) , 3 => 0 or more (*)
-	rules['class'] = ['class' , 1, 'className' , 1, '{' , 1, ,  'classVarDec' , 3, 'subroutineDec' , 3 , '}' , 1 ]
+	rules['class'] = ['class' , 1, 'className' , 1, '{' , 1 ,  'classVarDec' , 3, 'subroutineDec' , 3 , '}' , 1 ]
 	elements['class'] = ['keyword', 'identifier' , 'symbol', 'rule' , 'rule' , 'symbol' ]
 	rules['classVarDec'] = ['static|field' , 1 , 'type' , 1 , 'varName' , 1 , '_addlVarDec', 3  , ';' , 1 ]
 	elements['classVarDec'] = ['keyword' , 'rule' , 'identifier' , 'rule']
@@ -51,7 +51,7 @@ class Analyzer():
 	# you look at type - which is again looking for keyword : int|char|boolean .... you get the idea..
 	
 	rules['parameterList'] = [ '_params' , 2 ]
-	elements[parameterList'] = ['rule']
+	elements['parameterList'] = ['rule']
 	rules['_params'] = [ '_param' , 1 , '_addlParam' , 3 ]
 	elements['_params'] = ['rule' , 'rule' ]
 	rules['_param'] = ['type' , 1, 'varName' , 1 ]
@@ -71,7 +71,7 @@ class Analyzer():
 	rules['_index'] = ['[' , 1 , 'expression' , 1 , ']' , 1 ]
 	elements['_index'] = [ 'symbol' , 'rule' , 'symbol' ]
 	rules['ifStatement'] = ['if' , 1 , '(' , 1 , 'expression' , 1 , ')' , '{' , 1 , 'statements' , '}' , 1 , '_elseBlock' , 2 ]
-	elements['ifStatement'] = ['keyword' , 'symbol', 'rule', 'symbol', 'symbol', 'rulel , 'symbol' , 'rule' ]
+	elements['ifStatement'] = ['keyword' , 'symbol', 'rule', 'symbol', 'symbol', 'rule' , 'symbol' , 'rule' ]
 	rules['_elseBlock' ] = ['else' , 1 , '{' , 1 , 'statements' , 1 , '}' , 1 ]
 	elements['_elseBlock' ] = [ 'keyword', 'symbol', 'rule' , 'symbol' ]
 	rules['whileStatement'] = ['while', 1 , '(' , 'expression' , 1 , ')' , '{' , 1 , 'statements' , 1 , '}' , 1 ]
@@ -82,16 +82,16 @@ class Analyzer():
 	elements['returnStatement'] = ['keyword' , 'rule' , 'symbol' ]
 	rules['expression'] = ['term' , 1 , '_subExp' , 3 ]
 	elements['expression'] = ['rule' , 'rule' ]
-	rules['_subExp'] = ['op' , 1 , 'term' , 1 ]
-	elements['_subExp'] = ['+,-,*,/,&,|,<,>,=' , 'rule']	# special case - CSV - the rule-entry - in this case op will go out as <op> CSV-item </op>
-	rules['term'] = ['integerConstant|stringConstant|keywordConstant||varName|_arrayElem|subroutineCall|_paranthExp|_unOpTerm]
+	rules['_subExp'] = ['[+-*/&|<>]=' , 1 , 'term' , 1 ]	# intended for us in a regex search -- 
+	elements['_subExp'] = ['symbol' , 'rule']	# special case - CSV - the rule-entry - in this case op will go out as <op> CSV-item </op>
+	rules['term'] = ['integerConstant|stringConstant|keywordConstant||varName|_arrayElem|subroutineCall|_paranthExp|_unOpTerm' , 1]
 	elements['term'] = ['literal||rule']	# literal is special - you just look for what is in the rules[] and print that as the token name..
 	rules['_arrayElem'] = ['varName' , 1 , '[' , 1 , 'expression' , 1 , ']' , 1 ]
 	elements['_arrayElem'] = ['rule' , 'symbol', 'rule' , 'symbol' ]
 	rules['_paranthExp'] = ['(' , 1 , 'expression' , 1, ')' ]
 	elements['_paranthExp'] = ['symbol' , 'rule' , 'symbol' ]
-	rules['_unOpTerm' ] = ['unaryOp' , 1 , 'term' , 1 ]
-	elements['_unOpTerm' ] = ['-,~', 'rule']	# this is another special case - a CSV -- you put the rule-entry - in this case, <unaryOp>
+	rules['_unOpTerm' ] = ['[-~]' , 1 , 'term' , 1 ]
+	elements['_unOpTerm' ] = ['symbol', 'rule']	# this is another special case - a CSV -- you put the rule-entry - in this case, <unaryOp>
 	rules['subroutineCall'] = [ '_simpleCall|_classMethCall' , 1 ]
 	elements['subroutineCall'] = [ 'rule' ]
 	rules['_simpleCall' ] = [ 'subroutineName' , 1 , '(' , 1 , 'expressionList' , 1 , ')' , 1 ]
@@ -104,8 +104,9 @@ class Analyzer():
 	elements['_expressions'] = ['rule' , 'rule']
 	rules['_addlExpr'] = [',' , 1 , 'expression' , 1 ]
 	elements['_addlExpr'] = ['symbol' , 'rule']
-	rules['keywordConstant' ] = ['true|false|'null'|'this']
+	rules['keywordConstant' ] = ['true|false|null|this']
 	elements['keywordConstant'] = ['literal']
+	# op and unaryOp were also curve balls - be clear - say that those will not generate tokens!!
 	
 
 	def __init__( self, filename ):
@@ -113,48 +114,64 @@ class Analyzer():
 		target = re.sub( "Tokens\.xml" , "Analyzed.xml" , filename )
 		self.outstream = open( target, "w" )
 		self.nextline = ''
+		self.lineN = 1
+
+	def Write( self, buffer ) :		# buffer could be very big - so might need a better way to deal with this
+		self.outstream.write( buffer )
+		self.outstream.close()
+		
 		
 	# this is the main operator that uses other methods - maybe an OO noob style deprecated, but..	
+	# elements[xyz][] -- if you see 'rule' that results in another call to analyze()
+	#					-- if you see || then you split on || and process the resulting list in OR fashion - first one that hits terminates
+	#					-- if you see 'literal' then you look for tokenName matching what rules[][] specifies
 	def analyze( self, ruleName ) :
 		# will call itself recursively when it uses self.rules[] to process the input rule..
 		# get a token, see if it fits, move on.
+		buffer = ''
+		rule = self.rules[ruleName]
+		whatIs = elements[ruleName]
+		numR = len( rule ) / 2
+		for i in range( numR ) :
+			seekToken = rule[2*i]
+			count = rule[2*i + 1]	# 1 => 1; 2 => ? ; 3 => *
+			# symbol can't be combined with anything else in an OR.. so check for that first.
+			if ('symbol' == whatIs ) :
+				# use seekToken as a regex
+				if( re.match( seekToken , self.token ) ) :
+					buffer = buffer + self.token
+				else
+					print "Line num : " + str(self.lineN) + "expecting : " + seekToken + "but got \n" + self.nextline
+					sys.exit()
+				
+			types = whatIs.split('||')
+			
+			# in the case of 2 or 3, you only add whatIs if you actually find the patterns..
+		
 		
 
 		
 	def hasMoreTokens( self ):
-		if ( '' == self.nextline ) :
-			self.nextline = self.instream.readline()
-			# pdb.set_trace()
-			if( 'normal' == self.mode ) :
-				self.nextline = re.sub( r"/\*.+?\*/" , '' , self.nextline ) # in a non-greedy way, swallow up all comments
-				# only allowed to do this in normal mode - if you were already in comment mode, you'd have to eat up everything
-				# till */ :)
-				if( re.search( r"/\*" , self.nextline ) ) :	# something escaped the earlier lunch..
-					self.mode = "comment"
-					self.nextline = re.sub ( r"/\*.+" , '' , self.nextline )
-			elif( 'comment' == self.mode ) :
-				if ( re.search( r"\*/" , self.nextline ) ) :
-					self.mode = 'normal'
-				else :
-					self.nextline = "\n"	# swallow all
-				self.nextline = re.sub( r"^.+?\*/" , '' , self.nextline )	# now, swallow up all till the first(!) terminator
-				self.nextline = re.sub( r"/\*.+?\*/" , '' , self.nextline ) # in a non-greedy way, swallow up all comments
-				if( re.search( r"/\*" , self.nextline ) ) :	# something escaped the earlier lunch..
-					self.mode = "comment"
-					self.nextline = re.sub ( r"/\*.+" , '' , self.nextline )				
-			self.nextline = re.sub( r"//.+$" , "" , self.nextline )
-		else : 		# there are tokens to process
-			return True
-			
+		self.nextline = self.instream.readline();
+		self.lineN = self.lineN + 1
 		if not self.nextline:
 			return False
 		else:
+			match = re.match( "^\s*<(\S+)>\s*(\S+)" , self.nextline )
+			if( match ) :
+				self.tokenName = match.group(1)
+				self.token = match.group(2)
+				re.sub( r"&lt;" , "<" , self.token )
+				re.sub( r"&gt;" , ">" , self.token )
+				re.sub( r"&amp;" , "&" , self.token )
+			else :
+				print( "Unsupported line in input file" )
+				sys.exit()
 			return True
 			
 	def advance( self ):	# will only be called when nextline is not ''
-		atom = self.nextline[0]
-		self.nextline = self.nextline[1:]
-		return atom
+		
+		return 
 			
 
 			
@@ -186,9 +203,8 @@ else :
 
 for file in filelist :
 	j_analyzer = Analyzer( file )	# this does an init and also open the target for writing..
-	j_analizer.analyze()	# will also write
+	j_analyzer.Write( j_analyzer.analyze('class') )	# will also write
 
-	while j_parser.hasMoreAtoms():
 
 
 		

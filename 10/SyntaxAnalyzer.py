@@ -128,8 +128,9 @@ class Analyzer():
 	# open question at this point - how do you know if you should terminate with an error or if you
 	# are in a ? or * so you just move on to the next thing? You need a token buffer where you store
 	# stuff so you can backtrack - when you're in a ? or * - so the next rule can use what you've read in so far.. :)
-	def analyze( self, ruleName ) :
-		pdb.set_trace()
+	# you only want to issue an error when you MUST see something - if you're within a ? or *, you can't ERROR out :)
+	def analyze( self, ruleName, priority ) :		# priority is the same as 1,2,3 for 1, ?, *
+		#pdb.set_trace()
 		# will call itself recursively when it uses self.rules[] to process the input rule..
 		# get a token, see if it fits, move on.
 		buffer = ''
@@ -148,7 +149,8 @@ class Analyzer():
 				if( re.match( seekToken , self.token ) ) :
 					buffer = buffer + self.nextline
 				else :
-					self.error = "Line num : " + str(self.lineN) + "expecting : " + seekToken + "but got \n" + self.nextline 
+					if( 1 == priority ) :
+						print( "Line num : " + str(self.lineN) + ", expecting : " + seekToken + " but got\n" + self.token )
 					return ''
 			else :
 				types = whatIs[i].split('||')
@@ -212,8 +214,8 @@ else :
 for file in filelist :
 	j_analyzer = Analyzer( file )	# this does an init and also open the target for writing..
 #	j_analyzer.Write( j_analyzer.analyze('class') )	# will also write
-	print( j_analyzer.analyze('_unOpTerm') )
-	print( j_analyzer.analyze('_unOpTerm') )
+	print( j_analyzer.analyze('_unOpTerm' , 1) )
+	print( j_analyzer.analyze('_unOpTerm' , 1) )
 
 
 		

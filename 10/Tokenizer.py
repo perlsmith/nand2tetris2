@@ -87,6 +87,7 @@ class TknWriter() :
 
 	def Close( self ) :
 		self.outstream.write( "</tokens>\n")
+		self.outstream.close()
 		
 # Main program :
 

@@ -6,8 +6,9 @@
 # we're implementing differently here
 # we code all the rules in a way that the analyzer can access easily
 # there is one core analyzer function that calls itself each time it encounters a new rule (while processing current rule)
-
-
+# elements : have to deal with || , type of token (literal, symbol, and whether it's a rule you're looking for.
+# rules : if the name starts with _ then we don't emit a new token ( such as _additionalParameterDeclaration )
+# if what elements specifies matches what the <tokenType> says, then also you don't emit a new token.. Eg. keyword..
 
 import sys
 import re

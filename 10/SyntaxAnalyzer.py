@@ -4,7 +4,9 @@
 
 # Shimon's suggestion was to use a unique method for every higher-level construct
 # we're implementing differently here
-# we code all the rules in a way that the analyzer can 
+# we code all the rules in a way that the analyzer can access easily
+# there is one core analyzer function that calls itself each time it encounters a new rule (while processing current rule)
+
 
 
 import sys

@@ -1,29 +1,10 @@
-# started with Tokenizer.. since that one does files/directories correctly.. might
-# need a shell wrapper to stitch both together - need to see how easy that is in Py
-# this one does the pattern recognition..
+# refer older versions for older comments 
 
-# here's how :
-# when Shimon says :
+# implements LL2 for expression. Uses a priority level when checking the token to decide if there's an error in input code
 
-# class : 'class className '{' classVarDec* subroutineDec* '}'
-# we code :
-# rules = {}
-# rules['class'] = 'class$1$-className$1${$1$-classVarDec$*$-subroutineDec$*$}$1'
-# parse that using split($) to get the rule
-# while analyzing, you "look for" what the rule specifies and eat accordingly.
-# when you expect x and don't get it, you just exit.. very primitive analyzer..
-# what you're looking for is based on state - you may already be in a rule..
-# if not, you loop through all rules..
-# actually, you do start off looking for a class. One per file.. that's dictated by program
-# structure..
-# per the lecture - if you see a non-terminal construct, you end up with another look-for cycle (or a call to a routine as Shimon says)
-# for now, we're going to assume the Tokenizer has been run and we operate on the fileTokens.xml output
-# later, we'll combine into a single program
-
-# how should the execution be architected in an OO way? one class - with a get token method and a write 
-# token method.. and a check token method and a get rule method.. you start off looking for a class declaration..
-
-# since expression parsing is L2, when you're checking expressions you'll have to eat an additional token into the buffer
+# Shimon's suggestion was to use a unique method for every higher-level construct
+# we're implementing differently here
+# we code all the rules in a way that the analyzer can 
 
 
 import sys
@@ -127,7 +108,7 @@ class Analyzer():
 	#					-- if you see 'literal' then you look for tokenName matching what rules[][] specifies
 	# open question at this point - how do you know if you should terminate with an error or if you
 	# are in a ? or * so you just move on to the next thing? You need a token buffer where you store
-	# stuff so you can backtrack - when you're in a ? or * - so the next rule can use what you've read in so far.. :)
+	# stuff so you can backtrack - when you're in a ? or * - so the next rule can use what you've read in so far.. :) -- the LL2 helps out
 	# you only want to issue an error when you MUST see something - if you're within a ? or *, you can't ERROR out :)
 	def analyze( self, ruleName, priority ) :		# priority is the same as 1,2,3 for 1, ?, *
 		#pdb.set_trace()
@@ -141,7 +122,7 @@ class Analyzer():
 			seekToken = rule[2*i]
 			count = rule[2*i + 1]	# 1 => 1; 2 => ? ; 3 => *
 			# symbol can't be combined with anything else in an OR.. so check for that first.
-			if ('symbol' == whatIs[i] ) :
+			if ('symbol' == whatIs[i] ) :		# then you just use what rules[][] has to look at token..
 				# use seekToken as a regex
 				if ( not self.hasMoreTokens() ) :
 					print( "Prematurely out of tokens.." )
@@ -153,7 +134,9 @@ class Analyzer():
 						print( "Line num : " + str(self.lineN) + ", expecting : " + seekToken + " but got\n" + self.token )
 					return ''
 			else :
-				types = whatIs[i].split('||')
+				types = whatIs[i].split('||')		# from elements
+				rTypes = seekToken[i].split('||')	# from rules
+				for type in types
 				
 			
 		return buffer

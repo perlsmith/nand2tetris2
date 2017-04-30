@@ -68,8 +68,10 @@ class Analyzer():
 	elements['expression'] = ['rule' , 'rule' ]
 	rules['_subExp'] = ['[+-*/&|<>]=' , 1 , 'term' , 1 ]	# intended for us in a regex search -- 
 	elements['_subExp'] = ['symbol' , 'rule']	# special case - CSV - the rule-entry - in this case op will go out as <op> CSV-item </op>
-	rules['term'] = ['integerConstant|stringConstant|_keywordConstant||varName|_arrayElem|subroutineCall|_paranthExp|_unOpTerm' , 1]
-	elements['term'] = ['literal||rule']	# literal is special - you just look for what is in the rules[] and print that as the token name..
+	rules['term'] = ['integerConstant|stringConstant|_keywordConstant|varName|_arrayElem|subroutineCall|_paranthExp|_unOpTerm' , 1]
+	elements['term'] = ['rule']	# literal is special - you just look for what is in the rules[] and print that as the token name..
+	rules['_constant'] = ['*||*']
+	elements['_constant'] = ['integerConstant||stringConstant']
 	rules['_arrayElem'] = ['varName' , 1 , '[' , 1 , 'expression' , 1 , ']' , 1 ]
 	elements['_arrayElem'] = ['rule' , 'symbol', 'rule' , 'symbol' ]
 	rules['_paranthExp'] = ['(' , 1 , 'expression' , 1, ')' ]
@@ -125,6 +127,10 @@ class Analyzer():
 			seekToken = rule[2*i]
 			count = rule[2*i + 1]	# 1 => 1; 2 => ? ; 3 => *
 			# symbol can't be combined with anything else in an OR.. so check for that first.
+			# this is Musk class hairball rookieness and will go now
+			# how it works - as along as elements isn't telling you to look for a rule, you
+			# take the token type (specified by the <token> ) and, if it matches then you
+			# don't generate a new token tag..
 			if ('symbol' == whatIs[i] ) :		# then you just use what rules[][] has to look at token..
 				# use seekToken as a regex
 				if ( not self.hasMoreTokens() ) :

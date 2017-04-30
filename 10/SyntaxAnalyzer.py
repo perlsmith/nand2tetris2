@@ -116,36 +116,38 @@ class Analyzer():
 	# stuff so you can backtrack - when you're in a ? or * - so the next rule can use what you've read in so far.. :) -- the LL2 helps out
 	# you only want to issue an error when you MUST see something - if you're within a ? or *, you can't ERROR out :)
 	def analyze( self, ruleName, priority ) :		# priority is the same as 1,2,3 for 1, ?, *
+		# returns a buffer containing tokens satisfying rule, or ''. If return is '', then 
+		# decide if input is bad based on priority and depth
 		#pdb.set_trace()
 		# will call itself recursively when it uses self.rules[] to process the input rule..
 		# get a token, see if it fits, move on.
 		buffer = ''
+		satisfied = False
+		depth = 0			# local depth -- as you move from left to right, you have to increment
+							# so that, if you fail after finding matching tokens, you die
+							# but, when you process sub-rules, you have to go back to the called depth
 		rule = self.rules[ruleName]
 		whatIs = self.elements[ruleName]
-		numR = len( rule ) >> 1
+		numR = len( rule ) >> 1		# dividing by 2 gets you # of sub-rules
 		for i in range( numR ) :
 			seekToken = rule[2*i]
 			count = rule[2*i + 1]	# 1 => 1; 2 => ? ; 3 => *
-			# symbol can't be combined with anything else in an OR.. so check for that first.
-			# this is Musk class hairball rookieness and will go now
+
 			# how it works - as along as elements isn't telling you to look for a rule, you
 			# take the token type (specified by the <token> ) and, if it matches then you
 			# don't generate a new token tag..
-			if ('symbol' == whatIs[i] ) :		# then you just use what rules[][] has to look at token..
-				# use seekToken as a regex
-				if ( not self.hasMoreTokens() ) :
-					print( "Prematurely out of tokens.." )
-					sys.exit()
-				if( re.match( seekToken , self.token ) ) :
-					buffer = buffer + self.nextline
-				else :
-					if( 1 == priority ) :
-						print( "Line num : " + str(self.lineN) + ", expecting : " + seekToken + " but got\n" + self.token )
-					return ''
-			else :
-				types = whatIs[i].split('||')		# from elements
-				rTypes = seekToken[i].split('||')	# from rules
-				for type in types
+
+			types = whatIs[i].split('||')		# from elements
+			rTypes = seekToken[i].split('||')	# from rules
+			j = 0
+			for type in types :
+				if ( not satisfied ) :
+					if( 'rule' == type ) :
+						subMatch = self.analyze( rTypes[j] , count )
+						satisfied = not ( '' == subMatch )
+					else :
+						if ( self.hasMoreTokens() ) :
+							
 				
 			
 		return buffer
@@ -206,8 +208,8 @@ else :
 for file in filelist :
 	j_analyzer = Analyzer( file )	# this does an init and also open the target for writing..
 #	j_analyzer.Write( j_analyzer.analyze('class') )	# will also write
-	print( j_analyzer.analyze('_unOpTerm' , 1) )
-	print( j_analyzer.analyze('_unOpTerm' , 1) )
+	print( j_analyzer.analyze('_unOpTerm' , 1, 1) )
+	print( j_analyzer.analyze('_unOpTerm' , 1, 1) )
 
 
 		

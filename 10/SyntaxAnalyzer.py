@@ -68,7 +68,7 @@ class Analyzer():
 	elements['expression'] = ['rule' , 'rule' ]
 	rules['_subExp'] = ['[+-*/&|<>]=' , 1 , 'term' , 1 ]	# intended for us in a regex search -- 
 	elements['_subExp'] = ['symbol' , 'rule']	# special case - CSV - the rule-entry - in this case op will go out as <op> CSV-item </op>
-	rules['term'] = ['integerConstant|stringConstant|keywordConstant||varName|_arrayElem|subroutineCall|_paranthExp|_unOpTerm' , 1]
+	rules['term'] = ['integerConstant|stringConstant|_keywordConstant||varName|_arrayElem|subroutineCall|_paranthExp|_unOpTerm' , 1]
 	elements['term'] = ['literal||rule']	# literal is special - you just look for what is in the rules[] and print that as the token name..
 	rules['_arrayElem'] = ['varName' , 1 , '[' , 1 , 'expression' , 1 , ']' , 1 ]
 	elements['_arrayElem'] = ['rule' , 'symbol', 'rule' , 'symbol' ]
@@ -88,8 +88,8 @@ class Analyzer():
 	elements['_expressions'] = ['rule' , 'rule']
 	rules['_addlExpr'] = [',' , 1 , 'expression' , 1 ]
 	elements['_addlExpr'] = ['symbol' , 'rule']
-	rules['keywordConstant' ] = ['true|false|null|this']
-	elements['keywordConstant'] = ['literal']
+	rules['_keywordConstant' ] = ['true|false|null|this']
+	elements['_keywordConstant'] = ['keyword']
 	# op and unaryOp were also curve balls - be clear - say that those will not generate tokens!!
 	
 

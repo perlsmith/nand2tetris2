@@ -118,7 +118,7 @@ class Analyzer():
 	def analyze( self, ruleName, priority ) :		# priority is the same as 1,2,3 for 1, ?, *
 		# returns a buffer containing tokens satisfying rule, or ''. If return is '', then 
 		# decide if input is bad based on priority and depth
-		#pdb.set_trace()
+		pdb.set_trace()
 		# will call itself recursively when it uses self.rules[] to process the input rule..
 		# get a token, see if it fits, move on.
 		buffer = ''
@@ -138,16 +138,26 @@ class Analyzer():
 			# don't generate a new token tag..
 
 			types = whatIs[i].split('||')		# from elements
-			rTypes = seekToken[i].split('||')	# from rules
+			rTypes = seekToken.split('||')	# from rules
 			j = 0
 			for type in types :
 				if ( not satisfied ) :
 					if( 'rule' == type ) :
 						subMatch = self.analyze( rTypes[j] , count )
-						satisfied = not ( '' == subMatch )
-					else :
+						if( not ( '' == subMatch ) ):
+							satisfied = True
+							buffer = buffer + subMatch
+					else : 	# not a rule, so match immediately..
 						if ( self.hasMoreTokens() ) :
-							
+							if ( self.tokenName == type and re.match( rTypes[j] , self.token ) ) :
+								satisfied = True
+								buffer = buffer + self.nextline		# doesn't sound pretty, but..
+				j = j + 1
+				
+			if ( not satisfied ) :
+				if ( 1 == count ) :
+					print( "Failed when seeking match for : " + ruleName + " getting\n" + self.nextline )
+#					break
 				
 			
 		return buffer
@@ -185,7 +195,7 @@ class Analyzer():
 
 # if no files in the specified source, then die..
 
-source = sys.argv[1]
+source = sys.argv[1]		# not wasting time with prettiness here.. :)
 # pdb.set_trace()	
 
 state = 'START';
@@ -208,8 +218,8 @@ else :
 for file in filelist :
 	j_analyzer = Analyzer( file )	# this does an init and also open the target for writing..
 #	j_analyzer.Write( j_analyzer.analyze('class') )	# will also write
-	print( j_analyzer.analyze('_unOpTerm' , 1, 1) )
-	print( j_analyzer.analyze('_unOpTerm' , 1, 1) )
+	print( j_analyzer.analyze('_unOpTerm' , 1) )
+	print( j_analyzer.analyze('_unOpTerm' , 1) )
 
 
 		

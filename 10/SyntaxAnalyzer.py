@@ -118,7 +118,7 @@ class Analyzer():
 	def analyze( self, ruleName, priority ) :		# priority is the same as 1,2,3 for 1, ?, *
 		# returns a buffer containing tokens satisfying rule, or ''. If return is '', then 
 		# decide if input is bad based on priority and depth
-		pdb.set_trace()
+		# pdb.set_trace()
 		# will call itself recursively when it uses self.rules[] to process the input rule..
 		# get a token, see if it fits, move on.
 		buffer = ''
@@ -157,7 +157,7 @@ class Analyzer():
 			if ( not satisfied ) :
 				if ( 1 == count ) :
 					print( "Failed when seeking match for : " + ruleName + " getting\n" + self.nextline )
-#					break
+					break
 				
 			
 		return buffer

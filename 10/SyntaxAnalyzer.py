@@ -6,7 +6,7 @@
 # we're implementing differently here
 # we code all the rules in a way that the analyzer can access easily
 # there is one core analyzer function that calls itself each time it encounters a new rule (while processing current rule)
-# elements : have to deal with || , type of token (literal, symbol, and whether it's a rule you're looking for.
+# elements : have to deal with || , type of token (simple or rule)
 # rules : if the name starts with _ then we don't emit a new token ( such as _additionalParameterDeclaration )
 # if what elements specifies matches what the <tokenType> says, then also you don't emit a new token.. Eg. keyword..
 
@@ -108,9 +108,8 @@ class Analyzer():
 		
 		
 	# this is the main operator that uses other methods - maybe an OO noob style deprecated, but..	
-	# elements[xyz][] -- if you see 'rule' that results in another call to analyze()
+	# elements[xyz][] -- if you see 'rule', that results in another call to analyze()
 	#					-- if you see || then you split on || and process the resulting list in OR fashion - first one that hits terminates
-	#					-- if you see 'literal' then you look for tokenName matching what rules[][] specifies
 	# open question at this point - how do you know if you should terminate with an error or if you
 	# are in a ? or * so you just move on to the next thing? You need a token buffer where you store
 	# stuff so you can backtrack - when you're in a ? or * - so the next rule can use what you've read in so far.. :) -- the LL2 helps out

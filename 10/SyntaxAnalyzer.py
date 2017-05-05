@@ -10,6 +10,10 @@
 # rules : if the name starts with _ then we don't emit a new token ( such as _additionalParameterDeclaration )
 # if what elements specifies matches what the <tokenType> says, then also you don't emit a new token.. Eg. keyword..
 
+# this implementation style has basically created a new language that can be used to define a language..
+# so, we could use this to easily build a compiler for a new language - only, it has to be LL2 for expressions and LL1 
+# everywhere else..
+
 import sys
 import re
 import pdb	# to be able to use the debugger
@@ -18,81 +22,85 @@ import os 	# to check if a directory has been provided
 import subprocess # to be able to get files using *.xml
 
 class Analyzer():
-	rules = {}		# tells you what to look for
-	elements = {}	# tells you what tag you're going to write to the output..
-	# note : 1 => 1, 2 => 0 or 1 (?) , 3 => 0 or more (*)
-	rules['class'] = ['class' , 1, 'className' , 1, '{' , 1 ,  'classVarDec' , 3, 'subroutineDec' , 3 , '}' , 1 ]
-	elements['class'] = ['keyword', 'identifier' , 'symbol', 'rule' , 'rule' , 'symbol' ]
-	rules['classVarDec'] = ['static|field' , 1 , 'type' , 1 , 'varName' , 1 , '_addlVarDec', 3  , ';' , 1 ]
-	elements['classVarDec'] = ['keyword' , 'rule' , 'identifier' , 'rule']
-	rules['_addlVarDec'] = [',' , 1, 'varName', 1 ]		# _name implies this rule will not generate a token
-	elements['_addlVarDec'] = ['symbol', 'identifier']
-	rules['type'] = ['int|char|boolean||className' , 1]
-	elements['type'] = ['keyword||identifier']
-	rules['subroutineDec'] = ['constructor|function|method' , 1 , 'void||type' , 1 , 'subroutineName' , 1 , '(', 1, 'parameterList' , 1 , ')' , 'subroutineBody' , 1]
-	elements['subroutineDec'] = ['keyword' , 'keyword||rule' , 'identifier' , 'symbol' , 'rule', 'symbol', 'rule' ]
-	# what this means is that you first look for keyword : void - if you see void, then your put down <keyword> void </keyword> else
-	# you look at type - which is again looking for keyword : int|char|boolean .... you get the idea..
-	
-	rules['parameterList'] = [ '_params' , 2 ]
-	elements['parameterList'] = ['rule']
-	rules['_params'] = [ '_param' , 1 , '_addlParam' , 3 ]
-	elements['_params'] = ['rule' , 'rule' ]
-	rules['_param'] = ['type' , 1, 'varName' , 1 ]
-	elements['_param'] = ['rule', 'identifier']
-	rules['_addlParam' ] = [ ',' , 1 , 'varName' , 1]
-	elements['_addlParam' ] = [ 'symbol' , 'identifier' ]
-	rules['subroutineBody'] = ['{' , 1 , 'varDec' , 3 , 'statements' , 1 , '}' , 1 ]
-	elements['subroutineBody'] = ['symbol' , 'rule', 'rule', 'symbol' ]
-	rules['varDec'] = ['var' , 1, 'type' , 1, 'varName' , '_addlVarDec' , 3 , ';' , 1 ]
-	elements['varDec'] = ['keyword' , 'rule' , 'identifier' , 'rule' , 'symbol' ]
-	rules['statements'] = ['_statement' , 3 ]	# this was a curve ball - didn't realize they don't want <statement> ha!
-	elements['statements'] = ['rule']
-	rules['_statement'] = ['letStatement|ifStatement|whileStatement|doStatement|returnStatement']
-	elements['_statement'] = ['rule']
-	rules['letStatement'] = ['let' , 1 , 'varName' , 1 , '_index' , 2 , '=' , 1 , 'expression' , 1 , ';' , 1 ]
-	elements['letStatement'] = ['keyword' , 'identifier', 'rule' , 'symbol' , 'rule', 'symbol' ]
-	rules['_index'] = ['[' , 1 , 'expression' , 1 , ']' , 1 ]
-	elements['_index'] = [ 'symbol' , 'rule' , 'symbol' ]
-	rules['ifStatement'] = ['if' , 1 , '(' , 1 , 'expression' , 1 , ')' , '{' , 1 , 'statements' , '}' , 1 , '_elseBlock' , 2 ]
-	elements['ifStatement'] = ['keyword' , 'symbol', 'rule', 'symbol', 'symbol', 'rule' , 'symbol' , 'rule' ]
-	rules['_elseBlock' ] = ['else' , 1 , '{' , 1 , 'statements' , 1 , '}' , 1 ]
-	elements['_elseBlock' ] = [ 'keyword', 'symbol', 'rule' , 'symbol' ]
-	rules['whileStatement'] = ['while', 1 , '(' , 'expression' , 1 , ')' , '{' , 1 , 'statements' , 1 , '}' , 1 ]
-	elements['whileStatement'] = ['keyword' , 'symbol' , 'rule', 'symbol' , 'symbol' , 'rule' , 'symbol' ]
-	rules['doStatement'] = ['do' , 1 , 'subroutineCall' , 1 , ';' , 1 ]
-	elements['doStatement'] = ['keyword' , 'rule' , 'symbol' ]
-	rules['returnStatement'] = ['return' , 1 , 'expression' , 2 , ';' , 1 ]
-	elements['returnStatement'] = ['keyword' , 'rule' , 'symbol' ]
-	rules['expression'] = ['term' , 1 , '_subExp' , 3 ]
-	elements['expression'] = ['rule' , 'rule' ]
-	rules['_subExp'] = ['[+-*/&|<>]=' , 1 , 'term' , 1 ]	# intended for us in a regex search -- 
-	elements['_subExp'] = ['symbol' , 'rule']	# special case - CSV - the rule-entry - in this case op will go out as <op> CSV-item </op>
-	rules['term'] = ['integerConstant|stringConstant|_keywordConstant|varName|_arrayElem|subroutineCall|_paranthExp|_unOpTerm' , 1]
-	elements['term'] = ['rule']	# literal is special - you just look for what is in the rules[] and print that as the token name..
-	rules['_constant'] = ['*||*']
-	elements['_constant'] = ['integerConstant||stringConstant']
-	rules['_arrayElem'] = ['varName' , 1 , '[' , 1 , 'expression' , 1 , ']' , 1 ]
-	elements['_arrayElem'] = ['rule' , 'symbol', 'rule' , 'symbol' ]
-	rules['_paranthExp'] = ['(' , 1 , 'expression' , 1, ')' ]
-	elements['_paranthExp'] = ['symbol' , 'rule' , 'symbol' ]
-	rules['_unOpTerm' ] = ['[-~]' , 1 , 'term' , 1 ]
-	elements['_unOpTerm' ] = ['symbol', 'rule']	# this is another special case - a CSV -- you put the rule-entry - in this case, <unaryOp>
-	rules['subroutineCall'] = [ '_simpleCall|_classMethCall' , 1 ]
-	elements['subroutineCall'] = [ 'rule' ]
-	rules['_simpleCall' ] = [ 'subroutineName' , 1 , '(' , 1 , 'expressionList' , 1 , ')' , 1 ]
-	elements['_simpleCall' ] = [ 'identifier' , 'symbol' , 'rule' , 'symbol' ]
-	rules['_classMethCall' ] = [ 'varName' , 1 , '.', 1 , 'subroutineName' , 1 , '(' , 'expressionList' , 1 , ')' , 1 ]
-	elements['_classMethCall' ] = [ 'identifier' , 'symbol' , 'identifier' , 'symbol' , 'rule' , 'symbol' ]
-	rules['expressionList' ] = [ '_expressions' , 2 ] 
-	elements['expressionList'] = [ 'rule']
-	rules['_expressions'] = [ 'expression' , 1 , '_addlExpr' , 3 ]
-	elements['_expressions'] = ['rule' , 'rule']
-	rules['_addlExpr'] = [',' , 1 , 'expression' , 1 ]
-	elements['_addlExpr'] = ['symbol' , 'rule']
-	rules['_keywordConstant' ] = ['true|false|null|this']
-	elements['_keywordConstant'] = ['keyword']
-	# op and unaryOp were also curve balls - be clear - say that those will not generate tokens!!
+
+	# the only motivation for this is to be able to fold and manage the code easily :)
+	# wasn't going to work on this today, but, saw Gregor Kickzales tip on doing a bit everyday :)
+	def encode_lingo( self) :
+		self.rules = {}		# tells you what to look for
+		self.elements = {}	# tells you what tag you're going to write to the output..
+		# note : 1 => 1, 2 => 0 or 1 (?) , 3 => 0 or more (*)
+		self.rules['class'] = ['class' , 1, 'className' , 1, '{' , 1 ,  'classVarDec' , 3, 'subroutineDec' , 3 , '}' , 1 ]
+		self.elements['class'] = ['keyword', 'identifier' , 'symbol', 'rule' , 'rule' , 'symbol' ]
+		self.rules['classVarDec'] = ['static|field' , 1 , 'type' , 1 , 'varName' , 1 , '_addlVarDec', 3  , ';' , 1 ]
+		self.elements['classVarDec'] = ['keyword' , 'rule' , 'identifier' , 'rule']
+		self.rules['_addlVarDec'] = [',' , 1, 'varName', 1 ]		# _name implies this rule will not generate a token
+		self.elements['_addlVarDec'] = ['symbol', 'identifier']
+		self.rules['type'] = ['int|char|boolean||className' , 1]
+		self.elements['type'] = ['keyword||identifier']
+		self.rules['subroutineDec'] = ['constructor|function|method' , 1 , 'void||type' , 1 , 'subroutineName' , 1 , '(', 1, 'parameterList' , 1 , ')' , 'subroutineBody' , 1]
+		self.elements['subroutineDec'] = ['keyword' , 'keyword||rule' , 'identifier' , 'symbol' , 'rule', 'symbol', 'rule' ]
+		# what this means is that you first look for keyword : void - if you see void, then your put down <keyword> void </keyword> else
+		# you look at type - which is again looking for keyword : int|char|boolean .... you get the idea..
+		
+		self.rules['parameterList'] = [ '_params' , 2 ]
+		self.elements['parameterList'] = ['rule']
+		self.rules['_params'] = [ '_param' , 1 , '_addlParam' , 3 ]
+		self.elements['_params'] = ['rule' , 'rule' ]
+		self.rules['_param'] = ['type' , 1, 'varName' , 1 ]
+		self.elements['_param'] = ['rule', 'identifier']
+		self.rules['_addlParam' ] = [ ',' , 1 , 'varName' , 1]
+		self.elements['_addlParam' ] = [ 'symbol' , 'identifier' ]
+		self.rules['subroutineBody'] = ['{' , 1 , 'varDec' , 3 , 'statements' , 1 , '}' , 1 ]
+		self.elements['subroutineBody'] = ['symbol' , 'rule', 'rule', 'symbol' ]
+		self.rules['varDec'] = ['var' , 1, 'type' , 1, 'varName' , '_addlVarDec' , 3 , ';' , 1 ]
+		self.elements['varDec'] = ['keyword' , 'rule' , 'identifier' , 'rule' , 'symbol' ]
+		self.rules['statements'] = ['_statement' , 3 ]	# this was a curve ball - didn't realize they don't want <statement> ha!
+		self.elements['statements'] = ['rule']
+		self.rules['_statement'] = ['letStatement|ifStatement|whileStatement|doStatement|returnStatement']
+		self.elements['_statement'] = ['rule']
+		self.rules['letStatement'] = ['let' , 1 , 'varName' , 1 , '_index' , 2 , '=' , 1 , 'expression' , 1 , ';' , 1 ]
+		self.elements['letStatement'] = ['keyword' , 'identifier', 'rule' , 'symbol' , 'rule', 'symbol' ]
+		self.rules['_index'] = ['[' , 1 , 'expression' , 1 , ']' , 1 ]
+		self.elements['_index'] = [ 'symbol' , 'rule' , 'symbol' ]
+		self.rules['ifStatement'] = ['if' , 1 , '(' , 1 , 'expression' , 1 , ')' , '{' , 1 , 'statements' , '}' , 1 , '_elseBlock' , 2 ]
+		self.elements['ifStatement'] = ['keyword' , 'symbol', 'rule', 'symbol', 'symbol', 'rule' , 'symbol' , 'rule' ]
+		self.rules['_elseBlock' ] = ['else' , 1 , '{' , 1 , 'statements' , 1 , '}' , 1 ]
+		self.elements['_elseBlock' ] = [ 'keyword', 'symbol', 'rule' , 'symbol' ]
+		self.rules['whileStatement'] = ['while', 1 , '(' , 'expression' , 1 , ')' , '{' , 1 , 'statements' , 1 , '}' , 1 ]
+		self.elements['whileStatement'] = ['keyword' , 'symbol' , 'rule', 'symbol' , 'symbol' , 'rule' , 'symbol' ]
+		self.rules['doStatement'] = ['do' , 1 , 'subroutineCall' , 1 , ';' , 1 ]
+		self.elements['doStatement'] = ['keyword' , 'rule' , 'symbol' ]
+		self.rules['returnStatement'] = ['return' , 1 , 'expression' , 2 , ';' , 1 ]
+		self.elements['returnStatement'] = ['keyword' , 'rule' , 'symbol' ]
+		self.rules['expression'] = ['term' , 1 , '_subExp' , 3 ]
+		self.elements['expression'] = ['rule' , 'rule' ]
+		self.rules['_subExp'] = ['[+-*/&|<>]=' , 1 , 'term' , 1 ]	# intended for us in a regex search -- 
+		self.elements['_subExp'] = ['symbol' , 'rule']	# special case - CSV - the rule-entry - in this case op will go out as <op> CSV-item </op>
+		self.rules['term'] = ['integerConstant|stringConstant|_keywordConstant|varName|_arrayElem|subroutineCall|_paranthExp|_unOpTerm' , 1]
+		self.elements['term'] = ['rule']	# literal is special - you just look for what is in the rules[] and print that as the token name..
+		self.rules['_constant'] = ['*||*']
+		self.elements['_constant'] = ['integerConstant||stringConstant']
+		self.rules['_arrayElem'] = ['varName' , 1 , '[' , 1 , 'expression' , 1 , ']' , 1 ]
+		self.elements['_arrayElem'] = ['rule' , 'symbol', 'rule' , 'symbol' ]
+		self.rules['_paranthExp'] = ['(' , 1 , 'expression' , 1, ')' ]
+		self.elements['_paranthExp'] = ['symbol' , 'rule' , 'symbol' ]
+		self.rules['_unOpTerm' ] = ['[-~]' , 1 , 'term' , 1 ]
+		self.elements['_unOpTerm' ] = ['symbol', 'rule']	# this is another special case - a CSV -- you put the rule-entry - in this case, <unaryOp>
+		self.rules['subroutineCall'] = [ '_simpleCall|_classMethCall' , 1 ]
+		self.elements['subroutineCall'] = [ 'rule' ]
+		self.rules['_simpleCall' ] = [ 'subroutineName' , 1 , '(' , 1 , 'expressionList' , 1 , ')' , 1 ]
+		self.elements['_simpleCall' ] = [ 'identifier' , 'symbol' , 'rule' , 'symbol' ]
+		self.rules['_classMethCall' ] = [ 'varName' , 1 , '.', 1 , 'subroutineName' , 1 , '(' , 'expressionList' , 1 , ')' , 1 ]
+		self.elements['_classMethCall' ] = [ 'identifier' , 'symbol' , 'identifier' , 'symbol' , 'rule' , 'symbol' ]
+		self.rules['expressionList' ] = [ '_expressions' , 2 ] 
+		self.elements['expressionList'] = [ 'rule']
+		self.rules['_expressions'] = [ 'expression' , 1 , '_addlExpr' , 3 ]
+		self.elements['_expressions'] = ['rule' , 'rule']
+		self.rules['_addlExpr'] = [',' , 1 , 'expression' , 1 ]
+		self.elements['_addlExpr'] = ['symbol' , 'rule']
+		self.rules['_keywordConstant' ] = ['true|false|null|this']
+		self.elements['_keywordConstant'] = ['keyword']
+		# op and unaryOp were also curve balls - be clear - say that those will not generate tokens!!
 	
 
 	def __init__( self, filename ):
@@ -101,6 +109,7 @@ class Analyzer():
 		self.outstream = open( target, "w" )
 		self.nextline = ''
 		self.lineN = 1
+		self.encode_lingo()
 
 	def Write( self, buffer ) :		# buffer could be very big - so might need a better way to deal with this
 		self.outstream.write( buffer )

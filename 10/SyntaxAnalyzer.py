@@ -101,7 +101,6 @@ class Analyzer():
 		self.rules['_keywordConstant' ] = ['true|false|null|this']
 		self.elements['_keywordConstant'] = ['keyword']
 		# op and unaryOp were also curve balls - be clear - say that those will not generate tokens!!
-	
 
 	def __init__( self, filename ):
 		self.instream = open( filename, "r")	# be nice to do some exception handling :)
@@ -123,6 +122,9 @@ class Analyzer():
 	# are in a ? or * so you just move on to the next thing? You need a token buffer where you store
 	# stuff so you can backtrack - when you're in a ? or * - so the next rule can use what you've read in so far.. :) -- the LL2 helps out
 	# you only want to issue an error when you MUST see something - if you're within a ? or *, you can't ERROR out :)
+	# we'll have to update so that we have a single register token stack.. we first look there before
+	# reading a new token from the file..
+	# also, priority can only get elevated when traversing a rule laterally -- going by LL1..
 	def analyze( self, ruleName, priority ) :		# priority is the same as 1,2,3 for 1, ?, *
 		# returns a buffer containing tokens satisfying rule, or ''. If return is '', then 
 		# decide if input is bad based on priority and depth

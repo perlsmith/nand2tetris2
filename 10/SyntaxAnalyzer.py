@@ -107,6 +107,7 @@ class Analyzer():
 		target = re.sub( "Tokens\.xml" , "Analyzed.xml" , filename )
 		self.outstream = open( target, "w" )
 		self.nextline = ''
+		self.tokenStack = ''
 		self.lineN = 1
 		self.encode_lingo()
 
@@ -177,24 +178,31 @@ class Analyzer():
 
 		
 	def hasMoreTokens( self ):
-		self.nextline = self.instream.readline();
-		self.lineN = self.lineN + 1
-		if not self.nextline:
-			return False
-		else:
-			if( re.match( '<tokens>' , self.nextline ) ) :
-				self.nextline = self.instream.readline()
-			match = re.match( "^\s*<(\S+)>\s*(\S+)" , self.nextline )
-			if( match ) :
-				self.tokenName = match.group(1)
-				self.token = match.group(2)
-				re.sub( r"&lt;" , "<" , self.token )
-				re.sub( r"&gt;" , ">" , self.token )
-				re.sub( r"&amp;" , "&" , self.token )
-			else :
-				print( "Unsupported line in input file" )
-				sys.exit()
-			return True
+	# new twist in the tale - if you have a token waiting to be processed, because of
+	# back-tracking, then you don't want to read from file..
+		if( not '' == self.tokenStack ) :
+			token = self.tokenStack
+			self.tokenStack = ''
+			return token
+		else :
+			self.nextline = self.instream.readline();
+			self.lineN = self.lineN + 1
+			if not self.nextline:
+				return False
+			else:
+				if( re.match( '<tokens>' , self.nextline ) ) :
+					self.nextline = self.instream.readline()
+				match = re.match( "^\s*<(\S+)>\s*(\S+)" , self.nextline )
+				if( match ) :
+					self.tokenName = match.group(1)
+					self.token = match.group(2)
+					re.sub( r"&lt;" , "<" , self.token )
+					re.sub( r"&gt;" , ">" , self.token )
+					re.sub( r"&amp;" , "&" , self.token )
+				else :
+					print( "Unsupported line in input file" )
+					sys.exit()
+				return True
 			
 			
 

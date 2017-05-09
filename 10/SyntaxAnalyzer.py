@@ -32,12 +32,12 @@ class Analyzer():
 		self.rules['class'] = ['class' , 1, 'className' , 1, '{' , 1 ,  'classVarDec' , 3, 'subroutineDec' , 3 , '}' , 1 ]
 		self.elements['class'] = ['keyword', 'identifier' , 'symbol', 'rule' , 'rule' , 'symbol' ]
 		self.rules['classVarDec'] = ['static|field' , 1 , 'type' , 1 , 'varName' , 1 , '_addlVarDec', 3  , ';' , 1 ]
-		self.elements['classVarDec'] = ['keyword' , 'rule' , 'identifier' , 'rule']
+		self.elements['classVarDec'] = ['keyword' , 'rule' , 'identifier' , 'rule', 'symbol']
 		self.rules['_addlVarDec'] = [',' , 1, 'varName', 1 ]		# _name implies this rule will not generate a token
 		self.elements['_addlVarDec'] = ['symbol', 'identifier']
 		self.rules['type'] = ['int|char|boolean||className' , 1]
 		self.elements['type'] = ['keyword||identifier']
-		self.rules['subroutineDec'] = ['constructor|function|method' , 1 , 'void||type' , 1 , 'subroutineName' , 1 , '(', 1, 'parameterList' , 1 , ')' , 'subroutineBody' , 1]
+		self.rules['subroutineDec'] = ['constructor|function|method' , 1 , 'void||type' , 1 , 'subroutineName' , 1 , '(', 1, 'parameterList' , 1 , ')' , 1, 'subroutineBody' , 1]
 		self.elements['subroutineDec'] = ['keyword' , 'keyword||rule' , 'identifier' , 'symbol' , 'rule', 'symbol', 'rule' ]
 		# what this means is that you first look for keyword : void - if you see void, then your put down <keyword> void </keyword> else
 		# you look at type - which is again looking for keyword : int|char|boolean .... you get the idea..
@@ -52,21 +52,21 @@ class Analyzer():
 		self.elements['_addlParam' ] = [ 'symbol' , 'identifier' ]
 		self.rules['subroutineBody'] = ['{' , 1 , 'varDec' , 3 , 'statements' , 1 , '}' , 1 ]
 		self.elements['subroutineBody'] = ['symbol' , 'rule', 'rule', 'symbol' ]
-		self.rules['varDec'] = ['var' , 1, 'type' , 1, 'varName' , '_addlVarDec' , 3 , ';' , 1 ]
+		self.rules['varDec'] = ['var' , 1, 'type' , 1, 'varName' , 1 , '_addlVarDec' , 3 , ';' , 1 ]
 		self.elements['varDec'] = ['keyword' , 'rule' , 'identifier' , 'rule' , 'symbol' ]
 		self.rules['statements'] = ['_statement' , 3 ]	# this was a curve ball - didn't realize they don't want <statement> ha!
 		self.elements['statements'] = ['rule']
-		self.rules['_statement'] = ['letStatement|ifStatement|whileStatement|doStatement|returnStatement']
+		self.rules['_statement'] = ['letStatement|ifStatement|whileStatement|doStatement|returnStatement', 1]
 		self.elements['_statement'] = ['rule']
 		self.rules['letStatement'] = ['let' , 1 , 'varName' , 1 , '_index' , 2 , '=' , 1 , 'expression' , 1 , ';' , 1 ]
 		self.elements['letStatement'] = ['keyword' , 'identifier', 'rule' , 'symbol' , 'rule', 'symbol' ]
 		self.rules['_index'] = ['[' , 1 , 'expression' , 1 , ']' , 1 ]
 		self.elements['_index'] = [ 'symbol' , 'rule' , 'symbol' ]
-		self.rules['ifStatement'] = ['if' , 1 , '(' , 1 , 'expression' , 1 , ')' , '{' , 1 , 'statements' , '}' , 1 , '_elseBlock' , 2 ]
+		self.rules['ifStatement'] = ['if' , 1 , '(' , 1 , 'expression' , 1 , ')' , 1 , '{' , 1 , 'statements' , 1 , '}' , 1 , '_elseBlock' , 2 ]
 		self.elements['ifStatement'] = ['keyword' , 'symbol', 'rule', 'symbol', 'symbol', 'rule' , 'symbol' , 'rule' ]
 		self.rules['_elseBlock' ] = ['else' , 1 , '{' , 1 , 'statements' , 1 , '}' , 1 ]
 		self.elements['_elseBlock' ] = [ 'keyword', 'symbol', 'rule' , 'symbol' ]
-		self.rules['whileStatement'] = ['while', 1 , '(' , 'expression' , 1 , ')' , '{' , 1 , 'statements' , 1 , '}' , 1 ]
+		self.rules['whileStatement'] = ['while', 1 , '(' , 'expression' , 1 , ')' , 1 , '{' , 1 , 'statements' , 1 , '}' , 1 ]
 		self.elements['whileStatement'] = ['keyword' , 'symbol' , 'rule', 'symbol' , 'symbol' , 'rule' , 'symbol' ]
 		self.rules['doStatement'] = ['do' , 1 , 'subroutineCall' , 1 , ';' , 1 ]
 		self.elements['doStatement'] = ['keyword' , 'rule' , 'symbol' ]
@@ -78,7 +78,7 @@ class Analyzer():
 		self.elements['_subExp'] = ['symbol' , 'rule']	# special case - CSV - the rule-entry - in this case op will go out as <op> CSV-item </op>
 		self.rules['term'] = ['integerConstant|stringConstant|_keywordConstant|varName|_arrayElem|subroutineCall|_paranthExp|_unOpTerm' , 1]
 		self.elements['term'] = ['rule']	# literal is special - you just look for what is in the rules[] and print that as the token name..
-		self.rules['_constant'] = ['*||*']
+		self.rules['_constant'] = ['*||*' , 1]
 		self.elements['_constant'] = ['integerConstant||stringConstant']
 		self.rules['_arrayElem'] = ['varName' , 1 , '[' , 1 , 'expression' , 1 , ']' , 1 ]
 		self.elements['_arrayElem'] = ['rule' , 'symbol', 'rule' , 'symbol' ]
@@ -90,7 +90,7 @@ class Analyzer():
 		self.elements['subroutineCall'] = [ 'rule' ]
 		self.rules['_simpleCall' ] = [ 'subroutineName' , 1 , '(' , 1 , 'expressionList' , 1 , ')' , 1 ]
 		self.elements['_simpleCall' ] = [ 'identifier' , 'symbol' , 'rule' , 'symbol' ]
-		self.rules['_classMethCall' ] = [ 'varName' , 1 , '.', 1 , 'subroutineName' , 1 , '(' , 'expressionList' , 1 , ')' , 1 ]
+		self.rules['_classMethCall' ] = [ 'varName' , 1 , '.', 1 , 'subroutineName' , 1 , '(' , 1, 'expressionList' , 1 , ')' , 1 ]
 		self.elements['_classMethCall' ] = [ 'identifier' , 'symbol' , 'identifier' , 'symbol' , 'rule' , 'symbol' ]
 		self.rules['expressionList' ] = [ '_expressions' , 2 ] 
 		self.elements['expressionList'] = [ 'rule']
@@ -107,14 +107,15 @@ class Analyzer():
 		target = re.sub( "Tokens\.xml" , "Analyzed.xml" , filename )
 		self.outstream = open( target, "w" )
 		self.nextline = ''
-		self.tokenStack = ''
+		self.tokenStack = ''		# this enables backtracking - you have a token you read, now you have to 
+									# stop processing this rule and process another one - so you have to
+									# reuse the existing token
 		self.lineN = 1
 		self.encode_lingo()
 
 	def Write( self, buffer ) :		# buffer could be very big - so might need a better way to deal with this
 		self.outstream.write( buffer )
 		self.outstream.close()
-		
 		
 	# this is the main operator that uses other methods - maybe an OO noob style deprecated, but..	
 	# elements[xyz][] -- if you see 'rule', that results in another call to analyze()
@@ -125,24 +126,26 @@ class Analyzer():
 	# you only want to issue an error when you MUST see something - if you're within a ? or *, you can't ERROR out :)
 	# we'll have to update so that we have a single register token stack.. we first look there before
 	# reading a new token from the file..
-	# also, priority can only get elevated when traversing a rule laterally -- going by LL1..
-	def analyze( self, ruleName, priority ) :		# priority is the same as 1,2,3 for 1, ?, *
+	# also, hunger can only get elevated when traversing a rule laterally -- going by LL1..
+	def analyze( self, ruleName, hunger, severe=False ) :		# hunger is the same as 1,2,3 for 1, ?, *
 		# returns a buffer containing tokens satisfying rule, or ''. If return is '', then 
-		# decide if input is bad based on priority and depth
+		# decide if input is bad based on hunger and depth
 		# pdb.set_trace()
 		# will call itself recursively when it uses self.rules[] to process the input rule..
 		# get a token, see if it fits, move on.
 		buffer = ''
 		satisfied = False
+		appetite = True
 		depth = 0			# local depth -- as you move from left to right, you have to increment
 							# so that, if you fail after finding matching tokens, you die
 							# but, when you process sub-rules, you have to go back to the called depth
-		rule = self.rules[ruleName]
-		whatIs = self.elements[ruleName]
+		rule = self.rules[ruleName]		# remember, .rules is a dict, and each value is a list of elements
+		whatIs = self.elements[ruleName]	# now, whatIs tells you what each element of rule is - what type..
 		numR = len( rule ) >> 1		# dividing by 2 gets you # of sub-rules
+		
 		for i in range( numR ) :
 			seekToken = rule[2*i]
-			count = rule[2*i + 1]	# 1 => 1; 2 => ? ; 3 => *
+			count = rule[2*i + 1]	# 1 => 1; 2 => ? ; 3 => * 	-- count could be a misnomer here - it's hunger :)
 
 			# how it works - as along as elements isn't telling you to look for a rule, you
 			# take the token type (specified by the <token> ) and, if it matches then you
@@ -150,25 +153,33 @@ class Analyzer():
 
 			types = whatIs[i].split('||')		# from elements
 			rTypes = seekToken.split('||')	# from rules
-			j = 0
+			j = 0			# this portion could be coded more elegantly for sure - more idiomatically..
 			for type in types :
 				if ( not satisfied ) :
 					if( 'rule' == type ) :
-						subMatch = self.analyze( rTypes[j] , count )
+						subMatch = self.analyze( rTypes[j] , count, depth>0 )	# the recursive call. severity set on the fly
 						if( not ( '' == subMatch ) ):
 							satisfied = True
 							buffer = buffer + subMatch
+							if( not re.match( '_' , rTypes[j] ) ) :
+								buffer = '<' + rTypes[j] + ">\n" + buffer + '</' + rTypes[j] + ">\n"
 					else : 	# not a rule, so match immediately..
 						if ( self.hasMoreTokens() ) :
 							if ( self.tokenName == type and re.match( rTypes[j] , self.token ) ) :
 								satisfied = True
 								buffer = buffer + self.nextline		# doesn't sound pretty, but..
 				j = j + 1
+
+# example of back-tracking - varDec* - you see one variable declaration, but you're hungry for more
+# so you read a token, looking for "var", but you get "int" so you have to abort now without failing..
+# and you have to use this "int" that you just read in.. so..
 				
 			if ( not satisfied ) :
 				if ( 1 == count ) :
 					print( "Failed when seeking match for : " + ruleName + " getting\n" + self.nextline )
 					break
+			
+			depth = depth + 1
 				
 			
 		return buffer
@@ -183,7 +194,8 @@ class Analyzer():
 		if( not '' == self.tokenStack ) :
 			token = self.tokenStack
 			self.tokenStack = ''
-			return token
+			return True		 # if tokenStack not empty , say True and empty it - token and tokenName would already be valid
+							# spaghetti code unfortunately.. :(
 		else :
 			self.nextline = self.instream.readline();
 			self.lineN = self.lineN + 1

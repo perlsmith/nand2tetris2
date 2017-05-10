@@ -134,52 +134,55 @@ class Analyzer():
 		# will call itself recursively when it uses self.rules[] to process the input rule..
 		# get a token, see if it fits, move on.
 		buffer = ''
-		satisfied = False
-		appetite = True
-		depth = 0			# local depth -- as you move from left to right, you have to increment
-							# so that, if you fail after finding matching tokens, you die
-							# but, when you process sub-rules, you have to go back to the called depth
+		appetite = True		# if hunger = 1, then, once you see one, you set to False, for ? it's ... you get the idea..
+
 		rule = self.rules[ruleName]		# remember, .rules is a dict, and each value is a list of elements
 		whatIs = self.elements[ruleName]	# now, whatIs tells you what each element of rule is - what type..
 		numR = len( rule ) >> 1		# dividing by 2 gets you # of sub-rules
 		
-		for i in range( numR ) :
-			seekToken = rule[2*i]
-			count = rule[2*i + 1]	# 1 => 1; 2 => ? ; 3 => * 	-- count could be a misnomer here - it's hunger :)
+		while( appetite ) :
+			depth = 0		# local depth -- as you move from left to right, you have to increment
+							# so that, if you fail after finding matching tokens, you die
+							# but, when you process sub-rules, you have to go back to the called depth
+		
+			for i in range( numR ) :
+				satisfied = False
+				seekToken = rule[2*i]
+				count = rule[2*i + 1]	# 1 => 1; 2 => ? ; 3 => * 	-- count could be a misnomer here - it's hunger :)
 
-			# how it works - as along as elements isn't telling you to look for a rule, you
-			# take the token type (specified by the <token> ) and, if it matches then you
-			# don't generate a new token tag..
+				# how it works - as along as elements isn't telling you to look for a rule, you
+				# take the token type (specified by the <token> ) and, if it matches then you
+				# don't generate a new token tag..
 
-			types = whatIs[i].split('||')		# from elements
-			rTypes = seekToken.split('||')	# from rules
-			j = 0			# this portion could be coded more elegantly for sure - more idiomatically..
-			for type in types :
-				if ( not satisfied ) :
-					if( 'rule' == type ) :
-						subMatch = self.analyze( rTypes[j] , count, depth>0 )	# the recursive call. severity set on the fly
-						if( not ( '' == subMatch ) ):
-							satisfied = True
-							buffer = buffer + subMatch
-							if( not re.match( '_' , rTypes[j] ) ) :
-								buffer = '<' + rTypes[j] + ">\n" + buffer + '</' + rTypes[j] + ">\n"
-					else : 	# not a rule, so match immediately..
-						if ( self.hasMoreTokens() ) :
-							if ( self.tokenName == type and re.match( rTypes[j] , self.token ) ) :
+				types = whatIs[i].split('||')		# from elements
+				rTypes = seekToken.split('||')	# from rules
+				j = 0			# this portion could be coded more elegantly for sure - more idiomatically..
+				for type in types :		# that is alternatives for satisfying this token/rule
+					if ( not satisfied ) :
+						if( 'rule' == type ) :
+							subMatch = self.analyze( rTypes[j] , count, depth>0 )	# the recursive call. severity set on the fly
+							if( not ( '' == subMatch ) ):
 								satisfied = True
-								buffer = buffer + self.nextline		# doesn't sound pretty, but..
-				j = j + 1
+								buffer = buffer + subMatch
+								if( not re.match( '_' , rTypes[j] ) ) :
+									buffer = '<' + rTypes[j] + ">\n" + buffer + '</' + rTypes[j] + ">\n"
+						else : 	# not a rule, so match immediately.. good news is that hunger only applies to rules :)
+							if ( self.hasMoreTokens() ) :
+								if ( self.tokenName == type and re.match( rTypes[j] , self.token ) ) :
+									satisfied = True
+									buffer = buffer + self.nextline		# doesn't sound pretty, but..
+					j = j + 1
 
-# example of back-tracking - varDec* - you see one variable declaration, but you're hungry for more
-# so you read a token, looking for "var", but you get "int" so you have to abort now without failing..
-# and you have to use this "int" that you just read in.. so..
+	# example of back-tracking - varDec* - you see one variable declaration, but you're hungry for more
+	# so you read a token, looking for "var", but you get "int" so you have to abort now without failing..
+	# and you have to use this "int" that you just read in.. so..
+					
+				if ( not satisfied ) :
+					if ( severe ) :
+						print( "Failed when seeking match for : " + ruleName + " getting\n" + self.nextline )
+						break
 				
-			if ( not satisfied ) :
-				if ( 1 == count ) :
-					print( "Failed when seeking match for : " + ruleName + " getting\n" + self.nextline )
-					break
-			
-			depth = depth + 1
+				depth = depth + 1
 				
 			
 		return buffer

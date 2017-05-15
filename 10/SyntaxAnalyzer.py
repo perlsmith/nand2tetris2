@@ -164,12 +164,15 @@ class Analyzer():
 							if( '' == subMatch and 1 < hunger ) :
 								satisfied = True	# question : do we ever have xyz||rule with ?/*?
 						else : 	# not a rule, so match immediately.. good news is that hunger only applies to rules :)
+							pdb.set_trace()
 							if ( self.hasMoreTokens() ) :
 								if ( self.tokenName == type and re.match( rTypes[j] , self.token ) ) :
 									satisfied = True
 									buffer = buffer + self.nextline		# doesn't sound pretty, but..
 									self.tokenName = ''	# no going back now.. with anything but a rule, you *have* to match..
 													# this is where the token is consumed
+								else :		# went weeks without this :)
+									self.tokenStack = self.nextline		# because you did a read here..
 					j = j + 1
 
 	# example of back-tracking - varDec* - you see one variable declaration, but you're hungry for more
@@ -181,7 +184,7 @@ class Analyzer():
 						print( "Failed when seeking match for : " + ruleName + " getting\n" + self.nextline )
 						sys.exit()
 					else :
-						return ''
+						return buffer
 				
 				depth = depth + 1
 				
@@ -211,7 +214,7 @@ class Analyzer():
 			if not self.nextline:
 				return False
 			else:
-				if( re.match( '<tokens>' , self.nextline ) ) :
+				if( re.match( '<\/?tokens>' , self.nextline ) ) :
 					self.nextline = self.instream.readline()
 				match = re.match( "^\s*<(\S+)>\s*(\S+)" , self.nextline )
 				if( match ) :
@@ -222,8 +225,7 @@ class Analyzer():
 					re.sub( r"&amp;" , "&" , self.token )
 				else :
 					pdb.set_trace()
-					print( "Unsupported line in input file" )
-					sys.exit()
+					return False
 				return True
 			
 			

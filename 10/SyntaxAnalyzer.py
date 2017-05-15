@@ -177,9 +177,11 @@ class Analyzer():
 	# and you have to use this "int" that you just read in.. so..
 					
 				if ( not satisfied ) :
-					if ( severe ) :
+					if ( 1==hunger ) :
 						print( "Failed when seeking match for : " + ruleName + " getting\n" + self.nextline )
-						break
+						sys.exit()
+					else :
+						return ''
 				
 				depth = depth + 1
 				
@@ -187,7 +189,8 @@ class Analyzer():
 				howMany = howMany + 1
 				if( 3 > hunger ) :
 					appetite = False
-			
+
+		pdb.set_trace()
 		return buffer
 			# in the case of 2 or 3, you only add whatIs if you actually find the patterns..
 		
@@ -218,6 +221,7 @@ class Analyzer():
 					re.sub( r"&gt;" , ">" , self.token )
 					re.sub( r"&amp;" , "&" , self.token )
 				else :
+					pdb.set_trace()
 					print( "Unsupported line in input file" )
 					sys.exit()
 				return True

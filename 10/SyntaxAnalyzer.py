@@ -29,13 +29,13 @@ class Analyzer():
 		self.rules = {}		# tells you what to look for
 		self.elements = {}	# tells you what tag you're going to write to the output..
 		# note : 1 => 1, 2 => 0 or 1 (?) , 3 => 0 or more (*)
-		self.rules['class'] = ['class' , 1, 'className' , 1, '{' , 1 ,  'classVarDec' , 3, 'subroutineDec' , 3 , '}' , 1 ]
+		self.rules['class'] = ['class' , 1, '.*' , 1, '{' , 1 ,  'classVarDec' , 3, 'subroutineDec' , 3 , '}' , 1 ]
 		self.elements['class'] = ['keyword', 'identifier' , 'symbol', 'rule' , 'rule' , 'symbol' ]
 		self.rules['classVarDec'] = ['static|field' , 1 , '_type' , 1 , '.*' , 1 , '_addlVarDec', 3  , ';' , 1 ]
 		self.elements['classVarDec'] = ['keyword' , 'rule' , 'identifier' , 'rule', 'symbol']
 		self.rules['_addlVarDec'] = [',' , 1, '.*', 1 ]		# _name implies this rule will not generate a token
 		self.elements['_addlVarDec'] = ['symbol', 'identifier']
-		self.rules['_type'] = ['int|char|boolean||className' , 1]
+		self.rules['_type'] = ['int|char|boolean||.*' , 1]
 		self.elements['_type'] = ['keyword||identifier']
 		self.rules['subroutineDec'] = ['constructor|function|method' , 1 , 'void||_type' , 1 , 'subroutineName' , 1 , '(', 1, 'parameterList' , 1 , ')' , 1, 'subroutineBody' , 1]
 		self.elements['subroutineDec'] = ['keyword' , 'keyword||rule' , 'identifier' , 'symbol' , 'rule', 'symbol', 'rule' ]
@@ -88,9 +88,9 @@ class Analyzer():
 		self.elements['_unOpTerm' ] = ['symbol', 'rule']	# this is another special case - a CSV -- you put the rule-entry - in this case, <unaryOp>
 		self.rules['subroutineCall'] = [ '_simpleCall|_classMethCall' , 1 ]
 		self.elements['subroutineCall'] = [ 'rule' ]
-		self.rules['_simpleCall' ] = [ 'subroutineName' , 1 , '(' , 1 , 'expressionList' , 1 , ')' , 1 ]
+		self.rules['_simpleCall' ] = [ '.*' , 1 , '(' , 1 , 'expressionList' , 1 , ')' , 1 ]
 		self.elements['_simpleCall' ] = [ 'identifier' , 'symbol' , 'rule' , 'symbol' ]
-		self.rules['_classMethCall' ] = [ 'varName' , 1 , '.', 1 , 'subroutineName' , 1 , '(' , 1, 'expressionList' , 1 , ')' , 1 ]
+		self.rules['_classMethCall' ] = [ 'varName' , 1 , '.', 1 , '.*' , 1 , '(' , 1, 'expressionList' , 1 , ')' , 1 ]
 		self.elements['_classMethCall' ] = [ 'identifier' , 'symbol' , 'identifier' , 'symbol' , 'rule' , 'symbol' ]
 		self.rules['expressionList' ] = [ '_expressions' , 2 ] 
 		self.elements['expressionList'] = [ 'rule']

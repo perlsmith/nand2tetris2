@@ -158,13 +158,10 @@ class Analyzer():
 							subMatch = self.analyze( rTypes[j] , count, depth>0 )	# the recursive call. severity set on the fly
 							if( not ( '' == subMatch ) ):
 								satisfied = True
-								if( not re.match( '_' , rTypes[j] ) ) :
-									subMatch = '<' + rTypes[j] + ">\n" + subMatch + '</' + rTypes[j] + ">\n"
 								buffer = buffer + subMatch
 							if( '' == subMatch and 1 < hunger ) :
 								satisfied = True	# question : do we ever have xyz||rule with ?/*?
 						else : 	# not a rule, so match immediately.. good news is that hunger only applies to rules :)
-							pdb.set_trace()
 							if ( self.hasMoreTokens() ) :
 								if ( self.tokenName == type and re.match( rTypes[j] , self.token ) ) :
 									satisfied = True
@@ -188,12 +185,15 @@ class Analyzer():
 				
 				depth = depth + 1
 				
-			if( satisfied ) :
+			if( satisfied and (not '' == buffer) ) :
 				howMany = howMany + 1
-				if( 3 > hunger ) :
+				if( 3 > hunger ) :		# only with 3 are you looking for *
 					appetite = False
+				if( not re.match( '_' , ruleName ) ) :
+					buffer = '<' + ruleName + ">\n" + buffer + '</' + ruleName + ">\n"				
+			else :
+				return buffer		# lame spaghetti code, but just get it working for now..
 
-		pdb.set_trace()
 		return buffer
 			# in the case of 2 or 3, you only add whatIs if you actually find the patterns..
 		
@@ -224,7 +224,6 @@ class Analyzer():
 					re.sub( r"&gt;" , ">" , self.token )
 					re.sub( r"&amp;" , "&" , self.token )
 				else :
-					pdb.set_trace()
 					return False
 				return True
 			
@@ -255,12 +254,12 @@ else :
 		print( "Only operates on *Tokens.xml files" )
 		sys.exit()
 
-
 pdb.set_trace()
 for file in filelist :
 	j_analyzer = Analyzer( file )	# this does an init and also open the target for writing..
-#	j_analyzer.Write( j_analyzer.analyze('class') )	# will also write
-	print( j_analyzer.analyze('varDec' , 3) )
+
+#	print( j_analyzer.analyze('varDec' , 3) ) # passed on /tmp/TestaddVarTokens.xml -- var int a,b;
+	print( j_analyzer.analyze('class' , 1 ) )
 
 
 		

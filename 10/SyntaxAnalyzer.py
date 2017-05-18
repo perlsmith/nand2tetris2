@@ -37,13 +37,13 @@ class Analyzer():
 		self.elements['_addlVarDec'] = ['symbol', 'identifier']
 		self.rules['_type'] = ['int|char|boolean||.*' , 1]
 		self.elements['_type'] = ['keyword||identifier']
-		self.rules['subroutineDec'] = ['constructor|function|method' , 1 , 'void||_type' , 1 , 'subroutineName' , 1 , '(', 1, 'parameterList' , 1 , ')' , 1, 'subroutineBody' , 1]
+		self.rules['subroutineDec'] = ['constructor|function|method' , 1 , 'void||_type' , 1 , '.*' , 1 , '\(', 1, '_parameterList' , 1 , '\)' , 1, 'subroutineBody' , 1]
 		self.elements['subroutineDec'] = ['keyword' , 'keyword||rule' , 'identifier' , 'symbol' , 'rule', 'symbol', 'rule' ]
 		# what this means is that you first look for keyword : void - if you see void, then your put down <keyword> void </keyword> else
 		# you look at type - which is again looking for keyword : int|char|boolean .... you get the idea..
 		
-		self.rules['parameterList'] = [ '_params' , 2 ]
-		self.elements['parameterList'] = ['rule']
+		self.rules['_parameterList'] = [ '_params' , 2 ]
+		self.elements['_parameterList'] = ['rule']
 		self.rules['_params'] = [ '_param' , 1 , '_addlParam' , 3 ]
 		self.elements['_params'] = ['rule' , 'rule' ]
 		self.rules['_param'] = ['_type' , 1, '.*' , 1 ]
@@ -62,11 +62,11 @@ class Analyzer():
 		self.elements['letStatement'] = ['keyword' , 'identifier', 'rule' , 'symbol' , 'rule', 'symbol' ]
 		self.rules['_index'] = ['[' , 1 , 'expression' , 1 , ']' , 1 ]
 		self.elements['_index'] = [ 'symbol' , 'rule' , 'symbol' ]
-		self.rules['ifStatement'] = ['if' , 1 , '(' , 1 , 'expression' , 1 , ')' , 1 , '{' , 1 , 'statements' , 1 , '}' , 1 , '_elseBlock' , 2 ]
+		self.rules['ifStatement'] = ['if' , 1 , '\(' , 1 , 'expression' , 1 , '\)' , 1 , '{' , 1 , 'statements' , 1 , '}' , 1 , '_elseBlock' , 2 ]
 		self.elements['ifStatement'] = ['keyword' , 'symbol', 'rule', 'symbol', 'symbol', 'rule' , 'symbol' , 'rule' ]
 		self.rules['_elseBlock' ] = ['else' , 1 , '{' , 1 , 'statements' , 1 , '}' , 1 ]
 		self.elements['_elseBlock' ] = [ 'keyword', 'symbol', 'rule' , 'symbol' ]
-		self.rules['whileStatement'] = ['while', 1 , '(' , 'expression' , 1 , ')' , 1 , '{' , 1 , 'statements' , 1 , '}' , 1 ]
+		self.rules['whileStatement'] = ['while', 1 , '\(' , 'expression' , 1 , '\)' , 1 , '{' , 1 , 'statements' , 1 , '}' , 1 ]
 		self.elements['whileStatement'] = ['keyword' , 'symbol' , 'rule', 'symbol' , 'symbol' , 'rule' , 'symbol' ]
 		self.rules['doStatement'] = ['do' , 1 , 'subroutineCall' , 1 , ';' , 1 ]
 		self.elements['doStatement'] = ['keyword' , 'rule' , 'symbol' ]
@@ -82,7 +82,7 @@ class Analyzer():
 		self.elements['_constant'] = ['integerConstant||stringConstant']
 		self.rules['_arrayElem'] = ['varName' , 1 , '[' , 1 , 'expression' , 1 , ']' , 1 ]
 		self.elements['_arrayElem'] = ['rule' , 'symbol', 'rule' , 'symbol' ]
-		self.rules['_paranthExp'] = ['(' , 1 , 'expression' , 1, ')' ]
+		self.rules['_paranthExp'] = ['\(' , 1 , 'expression' , 1, '\)' ]
 		self.elements['_paranthExp'] = ['symbol' , 'rule' , 'symbol' ]
 		self.rules['_unOpTerm' ] = ['[-~]' , 1 , 'term' , 1 ]
 		self.elements['_unOpTerm' ] = ['symbol', 'rule']	# this is another special case - a CSV -- you put the rule-entry - in this case, <unaryOp>
@@ -129,6 +129,7 @@ class Analyzer():
 		# get a token, see if it fits, move on.
 		buffer = ''
 		final = ''	# more spaghettiness..
+		sought = ''
 		appetite = True		# if hunger = 1, then, once you see one, you set to False, for ? it's ... you get the idea..
 
 		rule = self.rules[ruleName]		# remember, .rules is a dict, and each value is a list of elements
@@ -165,6 +166,7 @@ class Analyzer():
 								satisfied = True	# question : do we ever have xyz||rule with ?/*?
 						else : 	# not a rule, so match immediately.. good news is that hunger only applies to rules :)
 							if ( self.hasMoreTokens() ) :
+								sought = rTypes[j]
 								if ( self.tokenName == type and re.match( rTypes[j] , self.token ) ) :
 									satisfied = True
 									buffer = buffer + self.nextline		# doesn't sound pretty, but..
@@ -180,7 +182,7 @@ class Analyzer():
 					
 				if ( not satisfied ) :
 					if ( 1==hunger ) :
-						print( "Failed when seeking match for : " + ruleName + " getting\n" + self.nextline )
+						print( "Failed when seeking match for : " + sought + ", getting\n" + self.nextline )
 						print( buffer )
 						print( final )
 						sys.exit()
@@ -263,8 +265,8 @@ else :
 for file in filelist :
 	j_analyzer = Analyzer( file )	# this does an init and also open the target for writing..
 
-	print( j_analyzer.analyze('varDec' , 3) ) # passed on /tmp/TestaddVarTokens.xml -- var int a,b;
-#	print( j_analyzer.analyze('class' , 1 ) )
+	# print( j_analyzer.analyze('varDec' , 3) ) # passed on /tmp/TestaddVarTokens.xml -- var int a,b;
+	print( j_analyzer.analyze('class' , 1 ) )
 
 
 		

@@ -152,6 +152,8 @@ class Analyzer():
 				# don't generate a new token tag..
 
 				types = whatIs[i].split('||')		# from elements
+				if( len(types) > 1 and list( set( types) )[0] == 'rule' ) :
+					count = 2	# here, you want to relax - this is more spaghetti for now.. but..
 				rTypes = seekToken.split('||')	# from rules
 				j = 0			# this portion could be coded more elegantly for sure - more idiomatically..
 				for type in types :		# that is alternatives for satisfying this token/rule

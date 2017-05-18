@@ -128,6 +128,7 @@ class Analyzer():
 		# will call itself recursively when it uses self.rules[] to process the input rule..
 		# get a token, see if it fits, move on.
 		buffer = ''
+		final = ''	# more spaghettiness..
 		appetite = True		# if hunger = 1, then, once you see one, you set to False, for ? it's ... you get the idea..
 
 		rule = self.rules[ruleName]		# remember, .rules is a dict, and each value is a list of elements
@@ -154,6 +155,7 @@ class Analyzer():
 				j = 0			# this portion could be coded more elegantly for sure - more idiomatically..
 				for type in types :		# that is alternatives for satisfying this token/rule
 					if ( not satisfied ) :
+						# pdb.set_trace()
 						if( 'rule' == type ) :
 							subMatch = self.analyze( rTypes[j] , count, depth>0 )	# the recursive call. severity set on the fly
 							if( not ( '' == subMatch ) ):
@@ -179,9 +181,11 @@ class Analyzer():
 				if ( not satisfied ) :
 					if ( 1==hunger ) :
 						print( "Failed when seeking match for : " + ruleName + " getting\n" + self.nextline )
+						print( buffer )
+						print( final )
 						sys.exit()
 					else :
-						return buffer
+						return final
 				
 				depth = depth + 1
 				
@@ -190,11 +194,13 @@ class Analyzer():
 				if( 3 > hunger ) :		# only with 3 are you looking for *
 					appetite = False
 				if( not re.match( '_' , ruleName ) ) :
-					buffer = '<' + ruleName + ">\n" + buffer + '</' + ruleName + ">\n"				
+					buffer = '<' + ruleName + ">\n" + buffer + '</' + ruleName + ">\n"	
+				final = final + buffer
+				buffer = ''
 			else :
-				return buffer		# lame spaghetti code, but just get it working for now..
+				return final		# lame spaghetti code, but just get it working for now..
 
-		return buffer
+		return final
 			# in the case of 2 or 3, you only add whatIs if you actually find the patterns..
 		
 		
@@ -254,12 +260,11 @@ else :
 		print( "Only operates on *Tokens.xml files" )
 		sys.exit()
 
-pdb.set_trace()
 for file in filelist :
 	j_analyzer = Analyzer( file )	# this does an init and also open the target for writing..
 
-#	print( j_analyzer.analyze('varDec' , 3) ) # passed on /tmp/TestaddVarTokens.xml -- var int a,b;
-	print( j_analyzer.analyze('class' , 1 ) )
+	print( j_analyzer.analyze('varDec' , 3) ) # passed on /tmp/TestaddVarTokens.xml -- var int a,b;
+#	print( j_analyzer.analyze('class' , 1 ) )
 
 
 		

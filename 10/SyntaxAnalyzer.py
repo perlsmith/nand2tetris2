@@ -74,7 +74,7 @@ class Analyzer():
 		self.elements['returnStatement'] = ['keyword' , 'rule' , 'symbol' ]
 		self.rules['expression'] = ['term' , 1 , '_subExp' , 3 ]
 		self.elements['expression'] = ['rule' , 'rule' ]
-		self.rules['_subExp'] = ['[+-*/&|<>]=' , 1 , 'term' , 1 ]	# intended for us in a regex search -- 
+		self.rules['_subExp'] = ['[+\-*/&|<>=]' , 1 , 'term' , 1 ]	# intended for us in a regex search -- 
 		self.elements['_subExp'] = ['symbol' , 'rule']	# special case - CSV - the rule-entry - in this case op will go out as <op> CSV-item </op>
 		self.rules['term'] = ['_constant||_keywordConstant||_varName||_arrayElem||subroutineCall||_paranthExp||_unOpTerm' , 1]
 		self.elements['term'] = ['rule||rule||rule||rule||rule||rule||rule']	

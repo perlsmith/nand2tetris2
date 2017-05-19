@@ -76,12 +76,12 @@ class Analyzer():
 		self.elements['expression'] = ['rule' , 'rule' ]
 		self.rules['_subExp'] = ['[+-*/&|<>]=' , 1 , 'term' , 1 ]	# intended for us in a regex search -- 
 		self.elements['_subExp'] = ['symbol' , 'rule']	# special case - CSV - the rule-entry - in this case op will go out as <op> CSV-item </op>
-		self.rules['term'] = ['_constant||_keywordConstant||varName||_arrayElem||subroutineCall||_paranthExp||_unOpTerm' , 1]
+		self.rules['term'] = ['_constant||_keywordConstant||_varName||_arrayElem||subroutineCall||_paranthExp||_unOpTerm' , 1]
 		self.elements['term'] = ['rule||rule||rule||rule||rule||rule||rule']	
 		self.rules['_constant'] = ['.*||.*' , 1]
 		self.elements['_constant'] = ['integerConstant||stringConstant']
-		self.rules['_arrayElem'] = ['varName' , 1 , '[' , 1 , 'expression' , 1 , ']' , 1 ]
-		self.elements['_arrayElem'] = ['rule' , 'symbol', 'rule' , 'symbol' ]
+		self.rules['_arrayElem'] = ['.*' , 1 , '[' , 1 , 'expression' , 1 , ']' , 1 ]
+		self.elements['_arrayElem'] = ['identifier' , 'symbol', 'rule' , 'symbol' ]
 		self.rules['_paranthExp'] = ['\(' , 1 , 'expression' , 1, '\)' ]
 		self.elements['_paranthExp'] = ['symbol' , 'rule' , 'symbol' ]
 		self.rules['_unOpTerm' ] = ['[-~]' , 1 , 'term' , 1 ]
@@ -90,7 +90,7 @@ class Analyzer():
 		self.elements['subroutineCall'] = [ 'rule' ]
 		self.rules['_simpleCall' ] = [ '.*' , 1 , '(' , 1 , 'expressionList' , 1 , ')' , 1 ]
 		self.elements['_simpleCall' ] = [ 'identifier' , 'symbol' , 'rule' , 'symbol' ]
-		self.rules['_classMethCall' ] = [ 'varName' , 1 , '.', 1 , '.*' , 1 , '(' , 1, 'expressionList' , 1 , ')' , 1 ]
+		self.rules['_classMethCall' ] = [ '.*' , 1 , '.', 1 , '.*' , 1 , '(' , 1, 'expressionList' , 1 , ')' , 1 ]
 		self.elements['_classMethCall' ] = [ 'identifier' , 'symbol' , 'identifier' , 'symbol' , 'rule' , 'symbol' ]
 		self.rules['expressionList' ] = [ '_expressions' , 2 ] 
 		self.elements['expressionList'] = [ 'rule']
@@ -98,8 +98,10 @@ class Analyzer():
 		self.elements['_expressions'] = ['rule' , 'rule']
 		self.rules['_addlExpr'] = [',' , 1 , 'expression' , 1 ]
 		self.elements['_addlExpr'] = ['symbol' , 'rule']
-		self.rules['_keywordConstant' ] = ['true|false|null|this']
+		self.rules['_keywordConstant' ] = ['true|false|null|this', 1]
 		self.elements['_keywordConstant'] = ['keyword']
+		self.rules['_varName'] = ['.*', 1]
+		self.elements['_varName'] = ['identifier']
 		# op and unaryOp were also curve balls - be clear - say that those will not generate tokens!!
 
 	def __init__( self, filename ):
@@ -136,6 +138,7 @@ class Analyzer():
 		whatIs = self.elements[ruleName]	# now, whatIs tells you what each element of rule is - what type..
 		numR = len( rule ) >> 1		# dividing by 2 gets you # of sub-rules
 		howMany = 0;
+		special = False;	# yes, spaghetti code :)
 		
 		while( appetite ) :
 			depth = 0		# local depth -- as you move from left to right, you have to increment
@@ -154,6 +157,7 @@ class Analyzer():
 				types = whatIs[i].split('||')		# from elements
 				if( len(types) > 1 and list( set( types) )[0] == 'rule' ) :
 					count = 2	# here, you want to relax - this is more spaghetti for now.. but..
+					special = True
 				rTypes = seekToken.split('||')	# from rules
 				j = 0			# this portion could be coded more elegantly for sure - more idiomatically..
 				for type in types :		# that is alternatives for satisfying this token/rule
@@ -164,7 +168,7 @@ class Analyzer():
 							if( not ( '' == subMatch ) ):
 								satisfied = True
 								buffer = buffer + subMatch
-							if( '' == subMatch and 1 < count ) :
+							if( '' == subMatch and 1 < count and (not special) ) :
 								satisfied = True	# question : do we ever have xyz||rule with ?/*?
 						else : 	# not a rule, so match immediately.. good news is that hunger only applies to rules :)
 							if ( self.hasMoreTokens() ) :

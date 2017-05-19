@@ -68,7 +68,7 @@ class Analyzer():
 		self.elements['_elseBlock' ] = [ 'keyword', 'symbol', 'rule' , 'symbol' ]
 		self.rules['whileStatement'] = ['while', 1 , '\(' , 'expression' , 1 , '\)' , 1 , '{' , 1 , 'statements' , 1 , '}' , 1 ]
 		self.elements['whileStatement'] = ['keyword' , 'symbol' , 'rule', 'symbol' , 'symbol' , 'rule' , 'symbol' ]
-		self.rules['doStatement'] = ['do' , 1 , 'subroutineCall' , 1 , ';' , 1 ]
+		self.rules['doStatement'] = ['do' , 1 , '_subroutineCall' , 1 , ';' , 1 ]
 		self.elements['doStatement'] = ['keyword' , 'rule' , 'symbol' ]
 		self.rules['returnStatement'] = ['return' , 1 , 'expression' , 2 , ';' , 1 ]
 		self.elements['returnStatement'] = ['keyword' , 'rule' , 'symbol' ]
@@ -76,7 +76,7 @@ class Analyzer():
 		self.elements['expression'] = ['rule' , 'rule' ]
 		self.rules['_subExp'] = ['[+\-*/&|<>=]' , 1 , 'term' , 1 ]	# intended for us in a regex search -- 
 		self.elements['_subExp'] = ['symbol' , 'rule']	# special case - CSV - the rule-entry - in this case op will go out as <op> CSV-item </op>
-		self.rules['term'] = ['_constant||_keywordConstant||_varName||_arrayElem||subroutineCall||_paranthExp||_unOpTerm' , 1]
+		self.rules['term'] = ['_constant||_keywordConstant||_varName||_arrayElem||_subroutineCall||_paranthExp||_unOpTerm' , 1]
 		self.elements['term'] = ['rule||rule||rule||rule||rule||rule||rule']	
 		self.rules['_constant'] = ['.*||.*' , 1]
 		self.elements['_constant'] = ['integerConstant||stringConstant']
@@ -86,11 +86,11 @@ class Analyzer():
 		self.elements['_paranthExp'] = ['symbol' , 'rule' , 'symbol' ]
 		self.rules['_unOpTerm' ] = ['[-~]' , 1 , 'term' , 1 ]
 		self.elements['_unOpTerm' ] = ['symbol', 'rule']	# this is another special case - a CSV -- you put the rule-entry - in this case, <unaryOp>
-		self.rules['subroutineCall'] = [ '_simpleCall|_classMethCall' , 1 ]
-		self.elements['subroutineCall'] = [ 'rule' ]
-		self.rules['_simpleCall' ] = [ '.*' , 1 , '(' , 1 , 'expressionList' , 1 , ')' , 1 ]
+		self.rules['_subroutineCall'] = [ '_simpleCall||_classMethCall' , 1 ]
+		self.elements['_subroutineCall'] = [ 'rule||rule' ]
+		self.rules['_simpleCall' ] = [ '.*' , 1 , '\(' , 1 , 'expressionList' , 1 , '\)' , 1 ]
 		self.elements['_simpleCall' ] = [ 'identifier' , 'symbol' , 'rule' , 'symbol' ]
-		self.rules['_classMethCall' ] = [ '.*' , 1 , '.', 1 , '.*' , 1 , '(' , 1, 'expressionList' , 1 , ')' , 1 ]
+		self.rules['_classMethCall' ] = [ '.*' , 1 , '.', 1 , '.*' , 1 , '\(' , 1, 'expressionList' , 1 , '\)' , 1 ]
 		self.elements['_classMethCall' ] = [ 'identifier' , 'symbol' , 'identifier' , 'symbol' , 'rule' , 'symbol' ]
 		self.rules['expressionList' ] = [ '_expressions' , 2 ] 
 		self.elements['expressionList'] = [ 'rule']
@@ -189,6 +189,7 @@ class Analyzer():
 				if ( not satisfied ) :
 					if ( 1==hunger ) :
 						print( "Failed when seeking match for : " + sought + ", getting\n" + self.nextline )
+						print( "Processing rule : " + ruleName )
 						print( buffer )
 						print( final )
 						sys.exit()

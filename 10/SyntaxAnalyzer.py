@@ -170,6 +170,8 @@ class Analyzer():
 								buffer = buffer + subMatch
 							if( '' == subMatch and 1 < count and (not special) ) :
 								satisfied = True	# question : do we ever have xyz||rule with ?/*?
+							if( re.search('fail' , subMatch ) and 1 < count ) :
+								satisfied = True	# spaghetti .. case of some* and some? --didn't work :)
 						else : 	# not a rule, so match immediately.. good news is that hunger only applies to rules :)
 							if ( self.hasMoreTokens() ) :
 								sought = rTypes[j]
@@ -193,6 +195,7 @@ class Analyzer():
 						# print( buffer )
 						# print( final )
 						# sys.exit()
+						print( 'fail : ' + ruleName )
 						return 'fail : ' + ruleName
 					else :
 						return final
@@ -275,7 +278,8 @@ for file in filelist :
 	j_analyzer = Analyzer( file )	# this does an init and also open the target for writing..
 
 	# print( j_analyzer.analyze('varDec' , 3) ) # passed on /tmp/TestaddVarTokens.xml -- var int a,b;
-	print( j_analyzer.analyze('class' , 1 ) )
+	# print( j_analyzer.analyze('class' , 1 ) )
+	print( j_analyzer.analyze('doStatement', 1 ) )
 
 
 		

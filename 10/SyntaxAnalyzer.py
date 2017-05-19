@@ -155,7 +155,7 @@ class Analyzer():
 				# don't generate a new token tag..
 
 				types = whatIs[i].split('||')		# from elements
-				if( len(types) > 1 and list( set( types) )[0] == 'rule' ) :
+				if( len(types) > 1 and list( set( types) )[0] == 'rule' ) :		# that is, if you only have rule||rule||rule.. 
 					count = 2	# here, you want to relax - this is more spaghetti for now.. but..
 					special = True
 				rTypes = seekToken.split('||')	# from rules
@@ -165,7 +165,7 @@ class Analyzer():
 						# pdb.set_trace()
 						if( 'rule' == type ) :
 							subMatch = self.analyze( rTypes[j] , count, depth>0 )	# the recursive call. severity set on the fly
-							if( not ( '' == subMatch ) ):
+							if( (not ( '' == subMatch ) ) and (not re.search('fail' , subMatch ) ) ) :
 								satisfied = True
 								buffer = buffer + subMatch
 							if( '' == subMatch and 1 < count and (not special) ) :
@@ -188,11 +188,12 @@ class Analyzer():
 					
 				if ( not satisfied ) :
 					if ( 1==hunger ) :
-						print( "Failed when seeking match for : " + sought + ", getting\n" + self.nextline )
-						print( "Processing rule : " + ruleName )
-						print( buffer )
-						print( final )
-						sys.exit()
+						# print( "Failed when seeking match for : " + sought + ", getting\n" + self.nextline )
+						# print( "Processing rule : " + ruleName )
+						# print( buffer )
+						# print( final )
+						# sys.exit()
+						return 'fail : ' + ruleName
 					else :
 						return final
 				

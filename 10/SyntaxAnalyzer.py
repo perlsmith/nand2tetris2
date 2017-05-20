@@ -86,12 +86,10 @@ class Analyzer():
 		self.elements['_paranthExp'] = ['symbol' , 'rule' , 'symbol' ]
 		self.rules['_unOpTerm' ] = ['[-~]' , 1 , 'term' , 1 ]
 		self.elements['_unOpTerm' ] = ['symbol', 'rule']	# this is another special case - a CSV -- you put the rule-entry - in this case, <unaryOp>
-		self.rules['_subroutineCall'] = [ '_simpleCall||_classMethCall' , 1 ]
-		self.elements['_subroutineCall'] = [ 'rule||rule' ]
-		self.rules['_simpleCall' ] = [ '.*' , 1 , '\(' , 1 , 'expressionList' , 1 , '\)' , 1 ]
-		self.elements['_simpleCall' ] = [ 'identifier' , 'symbol' , 'rule' , 'symbol' ]
-		self.rules['_classMethCall' ] = [ '.*' , 1 , '.', 1 , '.*' , 1 , '\(' , 1, 'expressionList' , 1 , '\)' , 1 ]
-		self.elements['_classMethCall' ] = [ 'identifier' , 'symbol' , 'identifier' , 'symbol' , 'rule' , 'symbol' ]
+		self.rules['_subroutineCall' ] = [ '.*' , 1 , '_cmCallMarker' , 2 , '\(' , 1, 'expressionList' , 1 , '\)' , 1 ]
+		self.elements['_subroutineCall' ] = [ 'identifier' , 'rule' , 'symbol' , 'rule' , 'symbol' ]
+		self.rules['_cmCallMarker'] = ['\.' , 1, '.*' , 1]
+		self.elements['_cmCallMarker'] = [ 'symbol' , 'identifier' ]
 		self.rules['expressionList' ] = [ '_expressions' , 2 ] 
 		self.elements['expressionList'] = [ 'rule']
 		self.rules['_expressions'] = [ 'expression' , 1 , '_addlExpr' , 3 ]
@@ -278,8 +276,8 @@ for file in filelist :
 	j_analyzer = Analyzer( file )	# this does an init and also open the target for writing..
 
 	# print( j_analyzer.analyze('varDec' , 3) ) # passed on /tmp/TestaddVarTokens.xml -- var int a,b;
-	print( j_analyzer.analyze('class' , 1 )[0] )
-	# print( j_analyzer.analyze('classVarDec', 3)[0] )
+	# print( j_analyzer.analyze('class' , 1 )[0] )
+	print( j_analyzer.analyze('_subroutineCall', 3)[0] )
 
 
 

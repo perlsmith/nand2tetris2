@@ -168,7 +168,7 @@ class Analyzer():
 							if( (not ( '' == subMatch ) ) and (not re.search('fail' , subMatch ) ) ) :
 								satisfied = True
 								buffer = buffer + subMatch
-							if( '' == subMatch and 1 < count  ) :
+							if( '' == subMatch and 1 < count and special ) :
 								satisfied = True	# question : do we ever have xyz||rule with ?/*?
 							if( result ) :
 								satisfied = True	# rookie code, but..
@@ -188,6 +188,7 @@ class Analyzer():
 	# so you read a token, looking for "var", but you get "int" so you have to abort now without failing..
 	# and you have to use this "int" that you just read in.. so..
 					
+#				pdb.set_trace()
 				if ( not satisfied ) :
 					if ( 1==hunger ) :
 						# print( "Failed when seeking match for : " + sought + ", getting\n" + self.nextline )
@@ -198,6 +199,8 @@ class Analyzer():
 						print( 'fail : ' + ruleName )
 						return 'fail : ' + ruleName
 					else :
+						if( not '' == final ) :
+							satisfied = True
 						return [final, satisfied]
 				
 				depth = depth + 1
@@ -278,8 +281,8 @@ for file in filelist :
 	j_analyzer = Analyzer( file )	# this does an init and also open the target for writing..
 
 	# print( j_analyzer.analyze('varDec' , 3) ) # passed on /tmp/TestaddVarTokens.xml -- var int a,b;
-	# print( j_analyzer.analyze('class' , 1 ) )
-	print( j_analyzer.analyze('doStatement', 1 )[0] )
+	print( j_analyzer.analyze('class' , 1 )[0] )
+
 
 
 		

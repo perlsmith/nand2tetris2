@@ -156,7 +156,6 @@ class Analyzer():
 
 				types = whatIs[i].split('||')		# from elements
 				if( len(types) > 1 and list( set( types) )[0] == 'rule' ) :		# that is, if you only have rule||rule||rule.. 
-					count = 2	# here, you want to relax - this is more spaghetti for now.. but..
 					special = True
 				rTypes = seekToken.split('||')	# from rules
 				j = 0			# this portion could be coded more elegantly for sure - more idiomatically..
@@ -168,7 +167,7 @@ class Analyzer():
 							if( (not ( '' == subMatch ) ) and (not re.search('fail' , subMatch ) ) ) :
 								satisfied = True
 								buffer = buffer + subMatch
-							if( '' == subMatch and 1 < count and special ) :
+							if( '' == subMatch and 1 < count ) :
 								satisfied = True	# question : do we ever have xyz||rule with ?/*?
 							if( result ) :
 								satisfied = True	# rookie code, but..
@@ -196,12 +195,10 @@ class Analyzer():
 						# print( buffer )
 						# print( final )
 						# sys.exit()
-						print( 'fail : ' + ruleName )
-						return 'fail : ' + ruleName
-					else :
-						if( not '' == final ) :
-							satisfied = True
-						return [final, satisfied]
+						# print( 'fail : ' + ruleName )
+						if( 'class' == ruleName ) :
+							print buffer
+						return ['fail : ' + ruleName, False ]
 				
 				depth = depth + 1
 				
@@ -282,6 +279,7 @@ for file in filelist :
 
 	# print( j_analyzer.analyze('varDec' , 3) ) # passed on /tmp/TestaddVarTokens.xml -- var int a,b;
 	print( j_analyzer.analyze('class' , 1 )[0] )
+	# print( j_analyzer.analyze('classVarDec', 3)[0] )
 
 
 

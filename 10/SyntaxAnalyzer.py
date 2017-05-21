@@ -82,7 +82,7 @@ class Analyzer():
 		self.elements['_constant'] = ['integerConstant||stringConstant']
 		self.rules['_arrayElem'] = ['.*' , 1 , '[' , 1 , 'expression' , 1 , ']' , 1 ]
 		self.elements['_arrayElem'] = ['identifier' , 'symbol', 'rule' , 'symbol' ]
-		self.rules['_paranthExp'] = ['\(' , 1 , 'expression' , 1, '\)' ]
+		self.rules['_paranthExp'] = ['\(' , 1 , 'expression' , 1, '\)' , 1]
 		self.elements['_paranthExp'] = ['symbol' , 'rule' , 'symbol' ]
 		self.rules['_unOpTerm' ] = ['[-~]' , 1 , 'term' , 1 ]
 		self.elements['_unOpTerm' ] = ['symbol', 'rule']	# this is another special case - a CSV -- you put the rule-entry - in this case, <unaryOp>
@@ -277,7 +277,7 @@ for file in filelist :
 
 	# print( j_analyzer.analyze('varDec' , 3) ) # passed on /tmp/TestaddVarTokens.xml -- var int a,b;
 	# print( j_analyzer.analyze('class' , 1 )[0] )
-	print( j_analyzer.analyze('_subroutineCall', 3)[0] )
+	print( j_analyzer.analyze('subroutineDec', 3)[0] )
 
 
 

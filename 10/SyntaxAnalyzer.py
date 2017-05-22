@@ -276,8 +276,8 @@ for file in filelist :
 	j_analyzer = Analyzer( file )	# this does an init and also open the target for writing..
 
 	# print( j_analyzer.analyze('varDec' , 3) ) # passed on /tmp/TestaddVarTokens.xml -- var int a,b;
-	# print( j_analyzer.analyze('class' , 1 )[0] )
-	print( j_analyzer.analyze('subroutineDec', 3)[0] )
+	print( j_analyzer.analyze('class' , 1 )[0] )
+	# print( j_analyzer.analyze('subroutineDec', 3)[0] )
 
 
 

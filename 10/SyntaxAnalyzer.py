@@ -197,6 +197,8 @@ class Analyzer():
 						if( 'class' == ruleName ) :
 							print buffer
 						return ['fail : ' + ruleName, False ]
+					else :
+						return [final, not( '' == final) ]
 				
 				depth = depth + 1
 				
@@ -228,6 +230,7 @@ class Analyzer():
 		else :
 			self.nextline = self.instream.readline();
 			print( self.nextline )
+			print( '_____________________________====================================')
 			self.lineN = self.lineN + 1
 			if not self.nextline:
 				return False
@@ -276,8 +279,8 @@ for file in filelist :
 	j_analyzer = Analyzer( file )	# this does an init and also open the target for writing..
 
 	# print( j_analyzer.analyze('varDec' , 3) ) # passed on /tmp/TestaddVarTokens.xml -- var int a,b;
-	print( j_analyzer.analyze('class' , 1 )[0] )
-	# print( j_analyzer.analyze('subroutineDec', 3)[0] )
+	# print( j_analyzer.analyze('class' , 1 )[0] )
+	print( j_analyzer.analyze('subroutineDec', 3)[0] )
 
 
 

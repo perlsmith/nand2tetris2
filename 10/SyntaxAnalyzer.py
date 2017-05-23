@@ -1,5 +1,7 @@
 # refer older versions for older comments 
 
+# use cat file.xml | perl -p -e 's/\r\n/\n/g;' >> dest.xml ... to get rid of the DOS/UNIX issues
+
 # implements LL2 for expression. Uses a priority level when checking the token to decide if there's an error in input code
 
 # Shimon's suggestion was to use a unique method for every higher-level construct
@@ -188,14 +190,6 @@ class Analyzer():
 #				pdb.set_trace()
 				if ( not satisfied ) :
 					if ( 1==hunger ) :
-						# print( "Failed when seeking match for : " + sought + ", getting\n" + self.nextline )
-						# print( "Processing rule : " + ruleName )
-						# print( buffer )
-						# print( final )
-						# sys.exit()
-						# print( 'fail : ' + ruleName )
-						if( 'class' == ruleName ) :
-							print buffer
 						return ['fail : ' + ruleName, False ]
 					else :
 						return [final, not( '' == final) ]

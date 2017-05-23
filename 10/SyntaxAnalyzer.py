@@ -74,7 +74,7 @@ class Analyzer():
 		self.elements['returnStatement'] = ['keyword' , 'rule' , 'symbol' ]
 		self.rules['expression'] = ['term' , 1 , '_subExp' , 3 ]
 		self.elements['expression'] = ['rule' , 'rule' ]
-		self.rules['_subExp'] = ['[+\-*/&|<>=]' , 1 , 'term' , 1 ]	# intended for us in a regex search -- 
+		self.rules['_subExp'] = ['[+\-*/|=]|&lt;|&gt;|&amp;' , 1 , 'term' , 1 ]	# intended for us in a regex search -- 
 		self.elements['_subExp'] = ['symbol' , 'rule']	# special case - CSV - the rule-entry - in this case op will go out as <op> CSV-item </op>
 		self.rules['term'] = ['_constant||_keywordConstant||_varName||_arrayElem||_subroutineCall||_paranthExp||_unOpTerm' , 1]
 		self.elements['term'] = ['rule||rule||rule||rule||rule||rule||rule']	
@@ -164,6 +164,8 @@ class Analyzer():
 							[subMatch, result] = self.analyze( rTypes[j] , count, depth>0 )	# the recursive call. severity set on the fly
 							if( (not ( '' == subMatch ) ) and (not re.search('fail' , subMatch ) ) ) :
 								satisfied = True
+								if( not re.match( '_' , rTypes[j] ) ) :
+									re.sub( r"^" , "  " , subMatch , flags=re.MULTILINE )
 								buffer = buffer + subMatch
 							if( '' == subMatch and 1 < count ) :
 								satisfied = True	# question : do we ever have xyz||rule with ?/*?
@@ -241,9 +243,10 @@ class Analyzer():
 				if( match ) :
 					self.tokenName = match.group(1)
 					self.token = match.group(2)
-					re.sub( r"&lt;" , "<" , self.token )
-					re.sub( r"&gt;" , ">" , self.token )
-					re.sub( r"&amp;" , "&" , self.token )
+					# re.sub( r"&lt;" , "<" , self.token )
+					# re.sub( r"&gt;" , ">" , self.token )
+					# re.sub( r"&amp;" , "&" , self.token )
+					# not necessary.. yet :)
 				else :
 					return False
 				return True
@@ -279,8 +282,8 @@ for file in filelist :
 	j_analyzer = Analyzer( file )	# this does an init and also open the target for writing..
 
 	# print( j_analyzer.analyze('varDec' , 3) ) # passed on /tmp/TestaddVarTokens.xml -- var int a,b;
-	print( j_analyzer.analyze('class' , 1 )[0] )
-	# print( j_analyzer.analyze('subroutineDec', 3)[0] )
+	# print( j_analyzer.analyze('class' , 1 )[0] )
+	print( j_analyzer.analyze('ifStatement', 3)[0] )
 
 
 

@@ -164,8 +164,6 @@ class Analyzer():
 							[subMatch, result] = self.analyze( rTypes[j] , count, depth>0 )	# the recursive call. severity set on the fly
 							if( (not ( '' == subMatch ) ) and (not re.search('fail' , subMatch ) ) ) :
 								satisfied = True
-								if( not re.match( '_' , rTypes[j] ) ) :
-									re.sub( r"^" , "  " , subMatch , flags=re.MULTILINE )
 								buffer = buffer + subMatch
 							if( '' == subMatch and 1 < count ) :
 								satisfied = True	# question : do we ever have xyz||rule with ?/*?
@@ -209,7 +207,7 @@ class Analyzer():
 				if( 3 > hunger ) :		# only with 3 are you looking for *
 					appetite = False
 				if( not re.match( '_' , ruleName ) ) :
-					buffer = '<' + ruleName + ">\n" + buffer + '</' + ruleName + ">\n"	
+					buffer = '<' + ruleName + ">\n" + re.sub(r"^(.)" , r"  \1", buffer , flags=re.MULTILINE) + '</' + ruleName + ">\n"	
 				final = final + buffer
 				buffer = ''
 			else :
@@ -282,8 +280,8 @@ for file in filelist :
 	j_analyzer = Analyzer( file )	# this does an init and also open the target for writing..
 
 	# print( j_analyzer.analyze('varDec' , 3) ) # passed on /tmp/TestaddVarTokens.xml -- var int a,b;
-	# print( j_analyzer.analyze('class' , 1 )[0] )
-	print( j_analyzer.analyze('ifStatement', 3)[0] )
+	j_analyzer.Write( j_analyzer.analyze('class' , 1 )[0] )
+	# print( j_analyzer.analyze('ifStatement', 3)[0] )
 
 
 

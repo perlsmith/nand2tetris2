@@ -78,7 +78,7 @@ class Analyzer():
 		self.elements['expression'] = ['rule' , 'rule' ]
 		self.rules['_subExp'] = ['[+\-*/|=]|&lt;|&gt;|&amp;' , 1 , 'term' , 1 ]	# intended for us in a regex search -- 
 		self.elements['_subExp'] = ['symbol' , 'rule']	# special case - CSV - the rule-entry - in this case op will go out as <op> CSV-item </op>
-		self.rules['term'] = ['_constant||_keywordConstant||_varName||_arrayElem||_subroutineCall||_paranthExp||_unOpTerm' , 1]
+		self.rules['term'] = ['_subroutineCall||_constant||_keywordConstant||_varName||_arrayElem||_paranthExp||_unOpTerm' , 1]
 		self.elements['term'] = ['rule||rule||rule||rule||rule||rule||rule']	
 		self.rules['_constant'] = ['.*||.*' , 1]
 		self.elements['_constant'] = ['integerConstant||stringConstant']
@@ -274,8 +274,8 @@ for file in filelist :
 	j_analyzer = Analyzer( file )	# this does an init and also open the target for writing..
 
 	# print( j_analyzer.analyze('varDec' , 3) ) # passed on /tmp/TestaddVarTokens.xml -- var int a,b;
-	j_analyzer.Write( j_analyzer.analyze('class' , 1 )[0] )
-	# print( j_analyzer.analyze('ifStatement', 3)[0] )
+	# j_analyzer.Write( j_analyzer.analyze('class' , 1 )[0] )
+	print( j_analyzer.analyze('letStatement', 3)[0] )
 
 
 

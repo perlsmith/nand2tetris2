@@ -37,21 +37,21 @@ class Analyzer():
 		self.elements['_addlVarDec'] = ['symbol', 'identifier']
 		self.rules['_type'] = ['int|char|boolean||.*' , 1]
 		self.elements['_type'] = ['keyword||identifier']
-		self.rules['subroutineDec'] = ['constructor|function|method' , 1 , 'void||_type' , 1 , '.*' , 1 , '\(', 1, '_parameterList' , 1 , '\)' , 1, '_subroutineBody' , 1]
+		self.rules['subroutineDec'] = ['constructor|function|method' , 1 , 'void||_type' , 1 , '.*' , 1 , '\(', 1, 'parameterList' , 1 , '\)' , 1, 'subroutineBody' , 1]
 		self.elements['subroutineDec'] = ['keyword' , 'keyword||rule' , 'identifier' , 'symbol' , 'rule', 'symbol', 'rule' ]
 		# what this means is that you first look for keyword : void - if you see void, then your put down <keyword> void </keyword> else
 		# you look at type - which is again looking for keyword : int|char|boolean .... you get the idea..
 		
-		self.rules['_parameterList'] = [ '_params' , 2 ]
-		self.elements['_parameterList'] = ['rule']
+		self.rules['parameterList'] = [ '_params' , 2 ]
+		self.elements['parameterList'] = ['rule']
 		self.rules['_params'] = [ '_param' , 1 , '_addlParam' , 3 ]
 		self.elements['_params'] = ['rule' , 'rule' ]
 		self.rules['_param'] = ['_type' , 1, '.*' , 1 ]
 		self.elements['_param'] = ['rule', 'identifier']
 		self.rules['_addlParam' ] = [ ',' , 1 , '_type' , 1 , '.*' , 1]
 		self.elements['_addlParam' ] = [ 'symbol' , 'rule', 'identifier' ]
-		self.rules['_subroutineBody'] = ['{' , 1 , 'varDec' , 3 , 'statements' , 1 , '}' , 1 ]
-		self.elements['_subroutineBody'] = ['symbol' , 'rule', 'rule', 'symbol' ]
+		self.rules['subroutineBody'] = ['{' , 1 , 'varDec' , 3 , 'statements' , 1 , '}' , 1 ]
+		self.elements['subroutineBody'] = ['symbol' , 'rule', 'rule', 'symbol' ]
 		self.rules['varDec'] = ['var' , 1, '_type' , 1, '.*' , 1 , '_addlVarDec' , 3 , ';' , 1 ]
 		self.elements['varDec'] = ['keyword' , 'rule' , 'identifier' , 'rule' , 'symbol' ]
 		self.rules['statements'] = ['_statement' , 3 ]	# this was a curve ball - didn't realize they don't want <statement> ha!

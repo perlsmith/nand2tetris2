@@ -202,7 +202,7 @@ class Analyzer():
 				
 				depth = depth + 1
 				
-			if( satisfied and (not '' == buffer) ) :
+			if( satisfied  ) :	# check for '' if you don't want tags for empty stuff..
 				howMany = howMany + 1
 				if( 3 > hunger ) :		# only with 3 are you looking for *
 					appetite = False

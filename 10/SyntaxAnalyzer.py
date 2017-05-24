@@ -68,7 +68,7 @@ class Analyzer():
 		self.elements['ifStatement'] = ['keyword' , 'symbol', 'rule', 'symbol', 'symbol', 'rule' , 'symbol' , 'rule' ]
 		self.rules['_elseBlock' ] = ['else' , 1 , '{' , 1 , 'statements' , 1 , '}' , 1 ]
 		self.elements['_elseBlock' ] = [ 'keyword', 'symbol', 'rule' , 'symbol' ]
-		self.rules['whileStatement'] = ['while', 1 , '\(' , 'expression' , 1 , '\)' , 1 , '{' , 1 , 'statements' , 1 , '}' , 1 ]
+		self.rules['whileStatement'] = ['while', 1 , '\(' , 1, 'expression' , 1 , '\)' , 1 , '{' , 1 , 'statements' , 1 , '}' , 1 ]
 		self.elements['whileStatement'] = ['keyword' , 'symbol' , 'rule', 'symbol' , 'symbol' , 'rule' , 'symbol' ]
 		self.rules['doStatement'] = ['do' , 1 , '_subroutineCall' , 1 , ';' , 1 ]
 		self.elements['doStatement'] = ['keyword' , 'rule' , 'symbol' ]
@@ -240,8 +240,8 @@ class Analyzer():
 							# spaghetti code unfortunately.. :(
 		else :
 			self.nextline = self.instream.readline();
-			print( self.nextline )
-			print( '_____________________________====================================')
+			# print( self.nextline )
+			# print( '_____________________________====================================')
 			self.lineN = self.lineN + 1
 			if not self.nextline:
 				return False

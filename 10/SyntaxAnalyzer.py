@@ -182,7 +182,11 @@ class Analyzer():
 										print( "Bad end to long token chain .." + ruleName + " : " + buffer )
 										sys.exit()
 									if( not '' == buffer ) :
-										self.tokenStack = buffer.rstrip("\n").split("\n")
+										self.tokenStack = buffer.rstrip("\n").rstrip("\r").split( r"\r?\n")
+										tokenStack = []
+										for token in self.tokenStack :
+											tokenStack = tokenStack + [token + "\n"]
+										self.tokenStack = tokenStack
 										self.tokenStack = self.tokenStack + [self.nextline]
 									else :
 										self.tokenStack = [self.nextline] + self.tokenStack
@@ -245,10 +249,6 @@ class Analyzer():
 				if( match ) :
 					self.tokenName = match.group(1)
 					self.token = match.group(2)
-					# re.sub( r"&lt;" , "<" , self.token )
-					# re.sub( r"&gt;" , ">" , self.token )
-					# re.sub( r"&amp;" , "&" , self.token )
-					# not necessary.. yet :)
 				else :
 					return False
 				return True

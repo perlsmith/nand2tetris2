@@ -31,15 +31,15 @@ class Analyzer():
 		self.rules = {}		# tells you what to look for
 		self.elements = {}	# tells you what tag you're going to write to the output..
 		# note : 1 => 1, 2 => 0 or 1 (?) , 3 => 0 or more (*)
-		self.rules['class'] = ['class' , 1, '.*' , 1, '{' , 1 ,  'classVarDec' , 3, 'subroutineDec' , 3 , '}' , 1 ]
+		self.rules['class'] = ['class' , 1, '[_a-zA-Z][_a-zA-Z0-9]*' , 1, '{' , 1 ,  'classVarDec' , 3, 'subroutineDec' , 3 , '}' , 1 ]
 		self.elements['class'] = ['keyword', 'identifier' , 'symbol', 'rule' , 'rule' , 'symbol' ]
-		self.rules['classVarDec'] = ['static|field' , 1 , '_type' , 1 , '.*' , 1 , '_addlVarDec', 3  , ';' , 1 ]
+		self.rules['classVarDec'] = ['static|field' , 1 , '_type' , 1 , '[_a-zA-Z][_a-zA-Z0-9]*' , 1 , '_addlVarDec', 3  , ';' , 1 ]
 		self.elements['classVarDec'] = ['keyword' , 'rule' , 'identifier' , 'rule', 'symbol']
-		self.rules['_addlVarDec'] = [',' , 1, '.*', 1 ]		# _name implies this rule will not generate a token
+		self.rules['_addlVarDec'] = [',' , 1, '[_a-zA-Z][_a-zA-Z0-9]*', 1 ]		# _name implies this rule will not generate a token
 		self.elements['_addlVarDec'] = ['symbol', 'identifier']
-		self.rules['_type'] = ['int|char|boolean||.*' , 1]
+		self.rules['_type'] = ['int|char|boolean||[_a-zA-Z][_a-zA-Z0-9]*' , 1]
 		self.elements['_type'] = ['keyword||identifier']
-		self.rules['subroutineDec'] = ['constructor|function|method' , 1 , 'void||_type' , 1 , '.*' , 1 , '\(', 1, 'parameterList' , 1 , '\)' , 1, 'subroutineBody' , 1]
+		self.rules['subroutineDec'] = ['constructor|function|method' , 1 , 'void||_type' , 1 , '[_a-zA-Z][_a-zA-Z0-9]*' , 1 , '\(', 1, 'parameterList' , 1 , '\)' , 1, 'subroutineBody' , 1]
 		self.elements['subroutineDec'] = ['keyword' , 'keyword||rule' , 'identifier' , 'symbol' , 'rule', 'symbol', 'rule' ]
 		# what this means is that you first look for keyword : void - if you see void, then your put down <keyword> void </keyword> else
 		# you look at type - which is again looking for keyword : int|char|boolean .... you get the idea..
@@ -48,19 +48,19 @@ class Analyzer():
 		self.elements['parameterList'] = ['rule']
 		self.rules['_params'] = [ '_param' , 1 , '_addlParam' , 3 ]
 		self.elements['_params'] = ['rule' , 'rule' ]
-		self.rules['_param'] = ['_type' , 1, '.*' , 1 ]
+		self.rules['_param'] = ['_type' , 1, '[_a-zA-Z][_a-zA-Z0-9]*' , 1 ]
 		self.elements['_param'] = ['rule', 'identifier']
-		self.rules['_addlParam' ] = [ ',' , 1 , '_type' , 1 , '.*' , 1]
+		self.rules['_addlParam' ] = [ ',' , 1 , '_type' , 1 , '[_a-zA-Z][_a-zA-Z0-9]*' , 1]
 		self.elements['_addlParam' ] = [ 'symbol' , 'rule', 'identifier' ]
 		self.rules['subroutineBody'] = ['{' , 1 , 'varDec' , 3 , 'statements' , 1 , '}' , 1 ]
 		self.elements['subroutineBody'] = ['symbol' , 'rule', 'rule', 'symbol' ]
-		self.rules['varDec'] = ['var' , 1, '_type' , 1, '.*' , 1 , '_addlVarDec' , 3 , ';' , 1 ]
+		self.rules['varDec'] = ['var' , 1, '_type' , 1, '[_a-zA-Z][_a-zA-Z0-9]*' , 1 , '_addlVarDec' , 3 , ';' , 1 ]
 		self.elements['varDec'] = ['keyword' , 'rule' , 'identifier' , 'rule' , 'symbol' ]
 		self.rules['statements'] = ['_statement' , 3 ]	# this was a curve ball - didn't realize they don't want <statement> ha!
 		self.elements['statements'] = ['rule']
 		self.rules['_statement'] = ['letStatement||ifStatement||whileStatement||doStatement||returnStatement', 1]
 		self.elements['_statement'] = ['rule||rule||rule||rule||rule']
-		self.rules['letStatement'] = ['let' , 1 , '.*' , 1 , '_index' , 2 , '=' , 1 , 'expression' , 1 , ';' , 1 ]
+		self.rules['letStatement'] = ['let' , 1 , '[_a-zA-Z][_a-zA-Z0-9]*' , 1 , '_index' , 2 , '=' , 1 , 'expression' , 1 , ';' , 1 ]
 		self.elements['letStatement'] = ['keyword' , 'identifier', 'rule' , 'symbol' , 'rule', 'symbol' ]
 		self.rules['_index'] = ['\[' , 1 , 'expression' , 1 , '\]' , 1 ]
 		self.elements['_index'] = [ 'symbol' , 'rule' , 'symbol' ]
@@ -80,17 +80,17 @@ class Analyzer():
 		self.elements['_subExp'] = ['symbol' , 'rule']	# special case - CSV - the rule-entry - in this case op will go out as <op> CSV-item </op>
 		self.rules['term'] = ['_subroutineCall||_arrayElem||_constant||_keywordConstant||_varName||_paranthExp||_unOpTerm' , 1]
 		self.elements['term'] = ['rule||rule||rule||rule||rule||rule||rule']	
-		self.rules['_constant'] = ['.*||.*' , 1]
+		self.rules['_constant'] = ['[_a-zA-Z][_a-zA-Z0-9]*||[_a-zA-Z][_a-zA-Z0-9]*' , 1]
 		self.elements['_constant'] = ['integerConstant||stringConstant']
-		self.rules['_arrayElem'] = ['.*' , 1 , '\[' , 1 , 'expression' , 1 , '\]' , 1 ]
+		self.rules['_arrayElem'] = ['[_a-zA-Z][_a-zA-Z0-9]*' , 1 , '\[' , 1 , 'expression' , 1 , '\]' , 1 ]
 		self.elements['_arrayElem'] = ['identifier' , 'symbol', 'rule' , 'symbol' ]
 		self.rules['_paranthExp'] = ['\(' , 1 , 'expression' , 1, '\)' , 1]
 		self.elements['_paranthExp'] = ['symbol' , 'rule' , 'symbol' ]
 		self.rules['_unOpTerm' ] = ['[-~]' , 1 , 'term' , 1 ]
 		self.elements['_unOpTerm' ] = ['symbol', 'rule']	# this is another special case - a CSV -- you put the rule-entry - in this case, <unaryOp>
-		self.rules['_subroutineCall' ] = [ '.*' , 1 , '_cmCallMarker' , 2 , '\(' , 1, 'expressionList' , 1 , '\)' , 1 ]
+		self.rules['_subroutineCall' ] = [ '[_a-zA-Z][_a-zA-Z0-9]*' , 1 , '_cmCallMarker' , 2 , '\(' , 1, 'expressionList' , 1 , '\)' , 1 ]
 		self.elements['_subroutineCall' ] = [ 'identifier' , 'rule' , 'symbol' , 'rule' , 'symbol' ]
-		self.rules['_cmCallMarker'] = ['\.' , 1, '.*' , 1]
+		self.rules['_cmCallMarker'] = ['\.' , 1, '[_a-zA-Z][_a-zA-Z0-9]*' , 1]
 		self.elements['_cmCallMarker'] = [ 'symbol' , 'identifier' ]
 		self.rules['expressionList' ] = [ '_expressions' , 2 ] 
 		self.elements['expressionList'] = [ 'rule']
@@ -100,7 +100,7 @@ class Analyzer():
 		self.elements['_addlExpr'] = ['symbol' , 'rule']
 		self.rules['_keywordConstant' ] = ['true|false|null|this', 1]
 		self.elements['_keywordConstant'] = ['keyword']
-		self.rules['_varName'] = ['.*', 1]
+		self.rules['_varName'] = ['[_a-zA-Z][_a-zA-Z0-9]*', 1]
 		self.elements['_varName'] = ['identifier']
 		# op and unaryOp were also curve balls - be clear - say that those will not generate tokens!!
 
@@ -240,8 +240,8 @@ class Analyzer():
 							# spaghetti code unfortunately.. :(
 		else :
 			self.nextline = self.instream.readline();
-			# print( self.nextline )
-			# print( '_____________________________====================================')
+			print( self.nextline )
+			print( '_____________________________====================================')
 			self.lineN = self.lineN + 1
 			if not self.nextline:
 				return False

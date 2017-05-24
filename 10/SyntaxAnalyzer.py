@@ -78,11 +78,11 @@ class Analyzer():
 		self.elements['expression'] = ['rule' , 'rule' ]
 		self.rules['_subExp'] = ['[+\-*/|=]|&lt;|&gt;|&amp;' , 1 , 'term' , 1 ]	# intended for us in a regex search -- 
 		self.elements['_subExp'] = ['symbol' , 'rule']	# special case - CSV - the rule-entry - in this case op will go out as <op> CSV-item </op>
-		self.rules['term'] = ['_subroutineCall||_constant||_keywordConstant||_varName||_arrayElem||_paranthExp||_unOpTerm' , 1]
+		self.rules['term'] = ['_subroutineCall||_arrayElem||_constant||_keywordConstant||_varName||_paranthExp||_unOpTerm' , 1]
 		self.elements['term'] = ['rule||rule||rule||rule||rule||rule||rule']	
 		self.rules['_constant'] = ['.*||.*' , 1]
 		self.elements['_constant'] = ['integerConstant||stringConstant']
-		self.rules['_arrayElem'] = ['.*' , 1 , '[' , 1 , 'expression' , 1 , ']' , 1 ]
+		self.rules['_arrayElem'] = ['.*' , 1 , '\[' , 1 , 'expression' , 1 , '\]' , 1 ]
 		self.elements['_arrayElem'] = ['identifier' , 'symbol', 'rule' , 'symbol' ]
 		self.rules['_paranthExp'] = ['\(' , 1 , 'expression' , 1, '\)' , 1]
 		self.elements['_paranthExp'] = ['symbol' , 'rule' , 'symbol' ]
@@ -109,7 +109,7 @@ class Analyzer():
 		target = re.sub( "Tokens\.xml" , "Analyzed.xml" , filename )
 		self.outstream = open( target, "w" )
 		self.nextline = ''
-		self.tokenStack = ''		# this enables backtracking - you have a token you read, now you have to 
+		self.tokenStack = []		# this enables backtracking - you have a token you read, now you have to 
 									# stop processing this rule and process another one - so you have to
 									# reuse the existing token
 		self.lineN = 1
@@ -177,10 +177,15 @@ class Analyzer():
 								if ( self.tokenName == type and re.match( rTypes[j] , self.token ) ) :
 									satisfied = True
 									buffer = buffer + self.nextline		# doesn't sound pretty, but..
-									self.tokenName = ''	# no going back now.. with anything but a rule, you *have* to match..
-													# this is where the token is consumed
 								else :		# went weeks without this :)
-									self.tokenStack = self.nextline		# because you did a read here..
+									if ( depth > 1 ) :
+										print( "Bad end to long token chain .." + ruleName + " : " + buffer )
+										sys.exit()
+									if( not '' == buffer ) :
+										self.tokenStack = buffer.rstrip("\n").split("\n")
+										self.tokenStack = self.tokenStack + [self.nextline]
+									else :
+										self.tokenStack = [self.nextline] + self.tokenStack
 					j = j + 1
 
 	# example of back-tracking - varDec* - you see one variable declaration, but you're hungry for more
@@ -194,7 +199,8 @@ class Analyzer():
 					else :
 						return [final, not( '' == final) ]
 				
-				depth = depth + 1
+				if ( 1 == count ) :
+					depth = depth + 1	# only keep track of mandatory items... :) 5/24 -- late in the game realization :)
 				
 			if( satisfied  ) :	# check for '' if you don't want tags for empty stuff..
 				howMany = howMany + 1
@@ -216,9 +222,13 @@ class Analyzer():
 	def hasMoreTokens( self ):
 	# new twist in the tale - if you have a token waiting to be processed, because of
 	# back-tracking, then you don't want to read from file..
-		if( not '' == self.tokenStack ) :
-			token = self.tokenStack
-			self.tokenStack = ''
+		if( len( self.tokenStack ) ) :
+			self.nextline = self.tokenStack[0]
+			match = re.match( "^\s*<(\S+)>\s*(\S+)" , self.nextline )
+			if( match ) :
+				self.tokenName = match.group(1)
+				self.token = match.group(2)
+			self.tokenStack = self.tokenStack[1:]
 			return True		 # if tokenStack not empty , say True and empty it - token and tokenName would already be valid
 							# spaghetti code unfortunately.. :(
 		else :

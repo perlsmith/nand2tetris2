@@ -177,20 +177,23 @@ class Analyzer():
 								if ( self.tokenName == type and re.match( rTypes[j] , self.token ) ) :
 									satisfied = True
 									buffer = buffer + self.nextline		# doesn't sound pretty, but..
-								else :		# went weeks without this :)
-									if ( depth > 1 ) :
-										print( "Bad end to long token chain .." + ruleName + " : " + buffer )
-										sys.exit()
-									if( not '' == buffer ) :
-										self.tokenStack = buffer.rstrip("\n").rstrip("\r").split( r"\r?\n")
-										tokenStack = []
-										for token in self.tokenStack :
-											tokenStack = tokenStack + [token + "\n"]
-										self.tokenStack = tokenStack
-										self.tokenStack = self.tokenStack + [self.nextline]
-									else :
-										self.tokenStack = [self.nextline] + self.tokenStack
 					j = j + 1
+				# for type
+				
+				if( not satisfied ) :
+					if ( depth > 1 ) :
+						print( "Bad end to long token chain .." + ruleName + " : " + buffer )
+						sys.exit()
+					if( not '' == buffer ) :
+						self.tokenStack = buffer.rstrip("\n").rstrip("\r").split( r"\r?\n")
+						tokenStack = []
+						for token in self.tokenStack :
+							tokenStack = tokenStack + [token + "\n"]
+						self.tokenStack = tokenStack
+						self.tokenStack = self.tokenStack + [self.nextline]
+					else :
+						self.tokenStack = [self.nextline] + self.tokenStack
+
 
 	# example of back-tracking - varDec* - you see one variable declaration, but you're hungry for more
 	# so you read a token, looking for "var", but you get "int" so you have to abort now without failing..

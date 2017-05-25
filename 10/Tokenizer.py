@@ -120,7 +120,7 @@ for file in filelist :
 	target = re.sub( "\.jack" , "Tokens.xml" , file )
 	j_TknWriter = TknWriter( target )
 
-	while j_parser.hasMoreAtoms():
+	while j_parser.hasMoreAtoms():		# == as long as the string that began as the line read from file minus comments is not ''
 		atom = j_parser.advance()
 		if ( 'START' == state ) :
 			buffer = ''

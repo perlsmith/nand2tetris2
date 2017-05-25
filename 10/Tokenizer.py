@@ -40,13 +40,13 @@ class Parser():
 				if ( re.search( r"\*/" , self.nextline ) ) :
 					self.mode = 'normal'
 				else :
-					self.nextline = "\n"	# swallow all
+					self.nextline = "\n"	# swallow all because you haven't seen a block cmt terminator
 				self.nextline = re.sub( r"^.+?\*/" , '' , self.nextline )	# now, swallow up all till the first(!) terminator
 				self.nextline = re.sub( r"/\*.+?\*/" , '' , self.nextline ) # in a non-greedy way, swallow up all comments
 				if( re.search( r"/\*" , self.nextline ) ) :	# something escaped the earlier lunch..
 					self.mode = "comment"
 					self.nextline = re.sub ( r"/\*.+" , '' , self.nextline )				
-			self.nextline = re.sub( r"//.+$" , "" , self.nextline )
+			self.nextline = re.sub( r"//.+$" , "" , self.nextline )	# get rid of inline comments
 		else : 		# there are tokens to process
 			return True
 			
@@ -56,8 +56,8 @@ class Parser():
 			return True
 			
 	def advance( self ):	# will only be called when nextline is not ''
-		atom = self.nextline[0]
-		self.nextline = self.nextline[1:]
+		atom = self.nextline[0]		# that is, the first character of the string
+		self.nextline = self.nextline[1:]	# the remainder of the string
 		return atom
 			
 	
@@ -91,7 +91,7 @@ class TknWriter() :
 		
 # Main program :
 
-# if a directory "Adder" is input containing .vm files, then the output is Adder/File1T.xml - for each..
+# if a directory "Adder" is input containing .vm files, then the output is Adder/File1Tokens.xml - for each..
 
 # if no files in the specified source, then die..
 

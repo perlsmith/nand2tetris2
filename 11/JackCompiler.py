@@ -292,9 +292,22 @@ class SymbolTable :
 			return self.c_table[ name ][ 2 ]
 		else :
 			return 'NONE'
+			
+	def typeOf( name ) :
+		if( self.s_table[ name ] ) :
+			return self.s_table[ name ][ 1 ]
+		elif( self.c_table[ name ] ) :
+			return self.c_table[ name ][ 1 ]
+		else :
+			return 'NONE'
 	
-	
-	
+	def indexOf( name ) :
+		if( self.s_table[ name ] ) :
+			return self.s_table[ name ][ 0 ]
+		elif( self.c_table[ name ] ) :
+			return self.c_table[ name ][ 0 ]
+		else :
+			return -1
 	
 			
 # Main program :

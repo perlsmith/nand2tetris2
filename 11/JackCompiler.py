@@ -2,11 +2,15 @@
 
 # use cat file.xml | perl -p -e 's/\r\n/\n/g;' >> dest.xml ... to get rid of the DOS/UNIX issues
 
-# a good idea to read comments in the SyntaxAnalyzer first if looking at this file for the first time
+# a good idea to read comments in the SyntaxAnalyzer (project 10) first if looking at this file for the first time
 
 # Shimon suggested having a Tokenizer here. why? That can be a separate module that generates tokens from
 # raw jack code. In the SyntaxAnalyzer we said what we saw. Here, we have to do something when we see
 # something - with variables, we update the symbol table ( so that's significant new functionality)
+
+# the way it's done is to add a third dict (to rules and elements) in encode_lingo that says what
+# action needs to be taken when a particular construct is encountered - for example, seeing a variable
+# results in a new entry in the symbol table
 
 # we're always processing only one class (file) at a time - for each, we create a new Analyzer and SymbolTable
 # and codeWriter object
@@ -254,6 +258,17 @@ class Analyzer():
 			
 			
 
+class SymbolTable :
+	# maintain 2 dicts - one for the fields and one for the sub vars - locals and arguments
+
+	def __init__() :
+		self.c_table = {}
+	
+	
+	def startSubroutine() :	# this guy just clears the sub symbol table
+		self.s_table = {}
+	
+	def Define( name, type, kind ) :	# string, string, STATIC, FIELD, ARG or VAR
 			
 # Main program :
 

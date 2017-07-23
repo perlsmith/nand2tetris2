@@ -280,8 +280,20 @@ class SymbolTable :
 	
 	def varCount( kind ) :		# return int and takes STATIC, FIELD, ARG or VAR
 								# "how many of this kind are already defined in current scope?"
+		if( kind in ['STATIC', 'FIELD'] ) :
+			return sum( var[ 2 ] == kind for var in c_table )
+		else
+			return sum( var[ 2 ] == kind for var in s_table )
 								
 	def kindOf( name ) :		# returns STATIC, FIELD.. of the given identifier by referencing the dicts
+		if( self.s_table[ name ] ) :
+			return self.s_table[ name ][ 2 ]
+		elif( self.c_table[ name ] ) :
+			return self.c_table[ name ][ 2 ]
+		else :
+			return 'NONE'
+	
+	
 	
 	
 			

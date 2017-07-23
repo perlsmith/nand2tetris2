@@ -224,8 +224,6 @@ class Analyzer():
 			# in the case of 2 or 3, you only add whatIs if you actually find the patterns..
 		
 		
-
-		
 	def hasMoreTokens( self ):
 	# new twist in the tale - if you have a token waiting to be processed, because of
 	# back-tracking, then you don't want to read from file..
@@ -260,15 +258,32 @@ class Analyzer():
 
 class SymbolTable :
 	# maintain 2 dicts - one for the fields and one for the sub vars - locals and arguments
+	# essentially, the symbol table is a scratchpad that assists you in code-generation..
 
 	def __init__() :
 		self.c_table = {}
+		self.c_index = 0
 	
 	
 	def startSubroutine() :	# this guy just clears the sub symbol table
 		self.s_table = {}
+		self.s_index = 0
 	
-	def Define( name, type, kind ) :	# string, string, STATIC, FIELD, ARG or VAR
+	def Define( name, type, kind ) :	# string, string, STATIC, FIELD, ARG or VAR -- creates a new entry in the table 
+										# static and field are class scope, arg and var are sub scope
+		if( kind in ['STATIc', 'FIELD'] ) :
+			self.c_table[ name ] = [ self.c_index, type, kind ]
+			self.c_index += 1
+		else :
+			self.s_table[ name ] = [ self.s_index, type, kind ]
+			self.s_index += 1
+	
+	def varCount( kind ) :		# return int and takes STATIC, FIELD, ARG or VAR
+								# "how many of this kind are already defined in current scope?"
+								
+	def kindOf( name ) :		# returns STATIC, FIELD.. of the given identifier by referencing the dicts
+	
+	
 			
 # Main program :
 

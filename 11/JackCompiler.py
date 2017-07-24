@@ -33,7 +33,7 @@ class Analyzer():
 		# note : 1 => 1, 2 => 0 or 1 (?) , 3 => 0 or more (*)
 		self.rules['class'] = ['class' , 1, '.*' , 1, '{' , 1 ,  'classVarDec' , 3, 'subroutineDec' , 3 , '}' , 1 ]
 		self.elements['class'] = ['keyword', 'identifier' , 'symbol', 'rule' , 'rule' , 'symbol' ]
-		self.rules['classVarDec'] = ['static|field' , 1 , '_type' , 1 , '.*' , 1 , '_addlVarDec', 3  , ';' , 1 ]
+		self.rules['classVarDec'] = ['static|field' , 1 , '_type' , 1 , '.*' , 1 , '_addlVarDec', 3  , ';' , 1 ]	# note that static/field are "kind"
 		self.elements['classVarDec'] = ['keyword' , 'rule' , 'identifier' , 'rule', 'symbol']
 		self.rules['_addlVarDec'] = [',' , 1, '.*', 1 ]		# _name implies this rule will not generate a token
 		self.elements['_addlVarDec'] = ['symbol', 'identifier']
@@ -139,7 +139,7 @@ class Analyzer():
 		numR = len( rule ) >> 1		# dividing by 2 gets you # of sub-rules
 		howMany = 0;
 		special = False;	# yes, spaghetti code :)
-		
+
 		while( appetite ) :
 			depth = 0		# local depth -- as you move from left to right, you have to increment
 							# so that, if you fail after finding matching tokens, you die

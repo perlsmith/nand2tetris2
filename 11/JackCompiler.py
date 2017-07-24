@@ -15,6 +15,9 @@
 # we're always processing only one class (file) at a time - for each, we create a new Analyzer and SymbolTable
 # and codeWriter object
 
+# compared to SyntaxAnalyzer, this one has a lot more comments in the encode_lingo section - essentially capturing
+# the lessons from the book/video
+
 
 import sys
 import re
@@ -35,6 +38,7 @@ class Analyzer():
 		self.elements['class'] = ['keyword', 'identifier' , 'symbol', 'rule' , 'rule' , 'symbol' ]
 		self.rules['classVarDec'] = ['static|field' , 1 , '_type' , 1 , '.*' , 1 , '_addlVarDec', 3  , ';' , 1 ]
 		self.elements['classVarDec'] = ['keyword' , 'rule' , 'identifier' , 'rule', 'symbol']
+	# create a new entry in symbol table
 		self.rules['_addlVarDec'] = [',' , 1, '.*', 1 ]		# _name implies this rule will not generate a token
 		self.elements['_addlVarDec'] = ['symbol', 'identifier']
 		self.rules['_type'] = ['int|char|boolean||.*' , 1]

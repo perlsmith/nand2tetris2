@@ -308,7 +308,42 @@ class SymbolTable :
 			return self.c_table[ name ][ 0 ]
 		else :
 			return -1
+
+			
+class VMWriter :
+
+	def __init__( className ) :
+		self.vmout = open( className + '.vm' , "w" )
+		
+	def writePush( segment, index ) :	# CONST, ARG, LOCAL, STATIC, THIS, THAT, POINTER, TEMP and integer for index
+		self.vmout.write( 'push ' + segment + str( index ) + "\n" )
+		
+	def writePop( segment, index ) :
+		self.vmout.write( 'pop ' + segment + str( index )  + "\n" )
 	
+	def writeArithmetic( cmd ) :
+		self.vmout.write( cmd  + "\n" )
+		
+	def writeLabel( label ) :
+		self.vmout.write( 'label ' + label + "\n" )
+	
+	def writeGoto( label ) :
+		self.vmout.write( 'goto ' + label + "\n" )
+		
+	def writeIf( label ) :
+		self.vmout.write( 'if-goto ' + label + "\n" )
+		
+	def writeCall( name, nArgs ) :
+		self.vmout.write( 'call ' + name + ' ' + str( nArgs ) + "\n" )
+	
+	def writeFunction( name, nLocals ) :
+		self.vmout.write( 'function ' + name + ' ' + str( nLocals ) + "\n" )
+	
+	def writeReturn( ) :
+		self.vmout.write( "return\n" )
+		
+	def close() :
+		self.vmout.close()
 			
 # Main program :
 

@@ -362,18 +362,19 @@ state = 'START';
 buffer = '';
 
 if os.path.isdir( source ) :
-	# start off writing to source/fileAnalyzed.xml by processing every *Tokens.xml file you encounter
-	filelist = os.popen( "ls " + source + "/*Tokens.xml").read().split()
+	# start off writing to source/fileAnalyzed.xml by processing every .jack file you encounter
+	filelist = os.popen( "ls " + source + "/*.jack").read().split()
 	if len( filelist ) < 1 :
-		print( "Please check if the directory has *Tokens.xml files in it (Eg. SquareTokens.xml" )
+		print( "Please check if the directory has .jack files in it (Eg. SquareTokens.jack" )
 else :
-	if re.search( r"\Tokens.xml" , source ) :
+	if re.search( r".jack" , source ) :
 		filelist = [source]
 	else :
-		print( "Only operates on *Tokens.xml files" )
+		print( "Only operates on .jack files" )
 		sys.exit()
 
 for file in filelist :
+	# system call for generating nameTokens.xml from the name.jack
 	j_analyzer = Analyzer( file )	# this does an init and also open the target for writing..
 
 	# print( j_analyzer.analyze('varDec' , 3) ) # passed on /tmp/TestaddVarTokens.xml -- var int a,b;

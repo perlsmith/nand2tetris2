@@ -376,7 +376,8 @@ else :
 for file in filelist :
 	call( ["python Tokenizer.py", $file] )
 	# system call for generating nameTokens.xml from the name.jack
-	j_analyzer = Analyzer( file )	# this does an init and also open the target for writing..
+	xml = re.sub( "\.jack" , "Tokens.xml" , file )
+	j_analyzer = Analyzer( xml )	# this does an init and also open the target for writing..
 
 	# print( j_analyzer.analyze('varDec' , 3) ) # passed on /tmp/TestaddVarTokens.xml -- var int a,b;
 	j_analyzer.Write( j_analyzer.analyze('class' , 1 )[0] )

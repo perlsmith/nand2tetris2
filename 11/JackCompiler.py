@@ -374,6 +374,7 @@ else :
 		sys.exit()
 
 for file in filelist :
+	call( ["python Tokenizer.py", $file] )
 	# system call for generating nameTokens.xml from the name.jack
 	j_analyzer = Analyzer( file )	# this does an init and also open the target for writing..
 

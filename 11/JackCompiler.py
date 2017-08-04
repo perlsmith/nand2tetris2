@@ -127,7 +127,7 @@ class Analyzer():
 	# elements[xyz][] -- if you see 'rule', that results in another call to analyze()
 	#					-- if you see || then you split on || and process the resulting list in OR fashion - first one that hits terminates
 	# also, hunger can only get elevated when traversing a rule laterally -- going by LL1..
-	def analyze( self, ruleName, hunger, severe=False ) :		# hunger is the same as 1,2,3 for 1, ?, *
+	def analyze( self, ruleName, hunger ) :		# hunger is the same as 1,2,3 for 1, ?, *
 		# returns a buffer containing tokens satisfying rule, or ''. If return is '', then 
 		# decide if input is bad based on hunger and depth
 		# pdb.set_trace()
@@ -139,7 +139,7 @@ class Analyzer():
 		appetite = True		# if hunger = 1, then, once you see one, you set to False, for ? it's ... you get the idea..
 
 		rule = self.rules[ruleName]		# remember, .rules is a dict, and each value is a list of elements
-		whatIs = self.elements[ruleName]	# now, whatIs tells you what each element of rule is - what type..
+		whatIs = self.elements[ruleName]	# now, whatIs tells you what each element of rule is - what token, or what (other) rule to look for
 		numR = len( rule ) >> 1		# dividing by 2 gets you # of sub-rules
 		howMany = 0;
 
@@ -151,11 +151,11 @@ class Analyzer():
 			for i in range( numR ) :
 				satisfied = False
 				seekToken = rule[2*i]
-				count = rule[2*i + 1]	# 1 => 1; 2 => ? ; 3 => * 	-- count could be a misnomer here - it's hunger :)
+				need = rule[2*i + 1]	# 1 => 1; 2 => ? ; 3 => * 	
 
 				# how it works - as along as elements isn't telling you to look for a rule, you
 				# take the token type (specified by the <token> ) and, if it matches then you
-				# don't generate a new token tag..
+				# don't generate a new token tag.. (that is, you dump out what you read..)
 
 				types = whatIs[i].split('||')		# from elements
 
@@ -165,11 +165,11 @@ class Analyzer():
 					if ( not satisfied ) :
 						# pdb.set_trace()
 						if( 'rule' == type ) :
-							[subMatch, result] = self.analyze( rTypes[j] , count, depth>0 )	# the recursive call. severity set on the fly
+							[subMatch, result] = self.analyze( rTypes[j] , need, depth>0 )	# the recursive call. severity set on the fly
 							if( (not ( '' == subMatch ) ) and (not re.search('fail' , subMatch ) ) ) :
 								satisfied = True
 								buffer = buffer + subMatch
-							if( '' == subMatch and 1 < count ) :
+							if( '' == subMatch and 1 < need ) :
 								satisfied = True	# question : do we ever have xyz||rule with ?/*?
 							if( result ) :
 								satisfied = True	# rookie code, but..
@@ -208,7 +208,7 @@ class Analyzer():
 					else :
 						return [final, not( '' == final) ]
 				
-				if ( 1 == count ) :
+				if ( 1 == need ) :
 					depth = depth + 1	# only keep track of mandatory items... :) 5/24 -- late in the game realization :)
 				
 			if( satisfied  ) :	# check for '' if you don't want tags for empty stuff..
@@ -377,9 +377,7 @@ for file in filelist :
 	xml = re.sub( "\.jack" , "Tokens.xml" , file )
 	j_analyzer = Analyzer( xml )	# this does an init and also open the target for writing..
 
-	# print( j_analyzer.analyze('varDec' , 3) ) # passed on /tmp/TestaddVarTokens.xml -- var int a,b;
 	j_analyzer.Write( j_analyzer.analyze('class' , 1 )[0] )
-	# print( j_analyzer.analyze('letStatement', 3)[0] )
 
 
 

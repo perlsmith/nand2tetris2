@@ -29,10 +29,10 @@ import subprocess # to be able to get files using *.xml
 class Analyzer():
 
 	# the only motivation for this is to be able to fold and manage the code easily :)
-	# wasn't going to work on this today, but, saw Gregor Kickzales tip on doing a bit everyday :)
+
 	def encode_lingo( self) :
-		self.rules = {}		# tells you what to look for
-		self.elements = {}	# tells you what tag you're going to write to the output..
+		self.rules = {}		# tells you what to look for  --- not the token type, but the token itself (which could be some big thing.. like a subr)
+		self.elements = {}	# tells you what tag you're going to write to the output..  -- what kind of thing satisfies each element of 'rules'
 		# note : 1 => 1, 2 => 0 or 1 (?) , 3 => 0 or more (*)
 		self.rules['class'] = ['class' , 1, '.*' , 1, '{' , 1 ,  'classVarDec' , 3, 'subroutineDec' , 3 , '}' , 1 ]
 		self.elements['class'] = ['keyword', 'identifier' , 'symbol', 'rule' , 'rule' , 'symbol' ]
@@ -142,7 +142,6 @@ class Analyzer():
 		whatIs = self.elements[ruleName]	# now, whatIs tells you what each element of rule is - what type..
 		numR = len( rule ) >> 1		# dividing by 2 gets you # of sub-rules
 		howMany = 0;
-		special = False;	# yes, spaghetti code :)
 
 		while( appetite ) :
 			depth = 0		# local depth -- as you move from left to right, you have to increment
@@ -159,8 +158,7 @@ class Analyzer():
 				# don't generate a new token tag..
 
 				types = whatIs[i].split('||')		# from elements
-				if( len(types) > 1 and list( set( types) )[0] == 'rule' ) :		# that is, if you only have rule||rule||rule.. 
-					special = True
+
 				rTypes = seekToken.split('||')	# from rules
 				j = 0			# this portion could be coded more elegantly for sure - more idiomatically..
 				for type in types :		# that is alternatives for satisfying this token/rule

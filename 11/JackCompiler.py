@@ -80,6 +80,7 @@ class Analyzer():
 		self.elements['returnStatement'] = ['keyword' , 'rule' , 'symbol' ]
 		self.rules['expression'] = ['term' , 1 , '_subExp' , 3 ]
 		self.elements['expression'] = ['rule' , 'rule' ]
+		# if you detect a _subExp, then you have to go to postfix - which is the VM implementation... where the magic happens..
 		self.rules['_subExp'] = ['[+\-*/|=]|&lt;|&gt;|&amp;' , 1 , 'term' , 1 ]	# intended for us in a regex search -- 
 		self.elements['_subExp'] = ['symbol' , 'rule']	# special case - CSV - the rule-entry - in this case op will go out as <op> CSV-item </op>
 		self.rules['term'] = ['_subroutineCall||_arrayElem||_constant||_keywordConstant||_varName||_paranthExp||_unOpTerm' , 1]
@@ -151,7 +152,7 @@ class Analyzer():
 			for i in range( numR ) :
 				satisfied = False
 				seekToken = rule[2*i]
-				need = rule[2*i + 1]	# 1 => 1; 2 => ? ; 3 => * 	
+				need = rule[2*i + 1]	# 1 => 1; 2 => ? ; 3 => * 	# note that the higher need is, the fewer you actually need to match
 
 				# how it works - as along as elements isn't telling you to look for a rule, you
 				# take the token type (specified by the <token> ) and, if it matches then you

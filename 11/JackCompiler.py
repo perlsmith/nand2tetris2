@@ -166,7 +166,7 @@ class Analyzer():
 					if ( not satisfied ) :
 						# pdb.set_trace()
 						if( 'rule' == type ) :
-							[subMatch, result] = self.analyze( rTypes[j] , need, depth>0 )	# the recursive call. severity set on the fly
+							[subMatch, result] = self.analyze( rTypes[j] , need )	# the recursive call. severity set on the fly
 							if( (not ( '' == subMatch ) ) and (not re.search('fail' , subMatch ) ) ) :
 								satisfied = True
 								buffer = buffer + subMatch

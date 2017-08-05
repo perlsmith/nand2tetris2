@@ -18,6 +18,12 @@
 # compared to SyntaxAnalyzer, this one has a lot more comments in the encode_lingo section - essentially capturing
 # the lessons from the book/video
 
+# what's different - the SyntaxAnalyzer can just use rules and elements to infer structure from a token stream
+# over here, we have an additional intelligence in the toDo dict, that tells the analyze routine what to do with
+# the buffer it gets back from a slave call (recursive call to analyze). Also, buffer is no longer a string but
+# but a list. So, for example, consider _unOpTerm, it uses calls to convert -xCoord to neg and varPut xCoord but
+# in postfix order.. It knows to do this because the self.toDo['_unOpTerm'] contains 
+# [1, 'symbolSub', 0 , 'arithLogGen' ]
 
 import sys
 import re
@@ -93,6 +99,7 @@ class Analyzer():
 		self.elements['_paranthExp'] = ['symbol' , 'rule' , 'symbol' ]
 		self.rules['_unOpTerm' ] = ['[-~]' , 1 , 'term' , 1 ]
 		self.elements['_unOpTerm' ] = ['symbol', 'rule']	# this is another special case - a CSV -- you put the rule-entry - in this case, <unaryOp>
+		self.toDo['_unOpTerm'] = [ 1, 'symbolSub', 0 , 'arithLogGen' ]
 		self.rules['_subroutineCall' ] = [ '.*' , 1 , '_cmCallMarker' , 2 , '\(' , 1, 'expressionList' , 1 , '\)' , 1 ]
 		self.elements['_subroutineCall' ] = [ 'identifier' , 'rule' , 'symbol' , 'rule' , 'symbol' ]
 		self.rules['_cmCallMarker'] = ['\.' , 1, '.*' , 1]

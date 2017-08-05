@@ -24,7 +24,7 @@ import re
 import pdb	# to be able to use the debugger
 import textwrap
 import os 	# to check if a directory has been provided
-import subprocess # to be able to get files using *.xml
+from subprocess import call # to be able to get files using *.xml
 
 class Analyzer():
 
@@ -285,7 +285,7 @@ class SymbolTable :
 								# "how many of this kind are already defined in current scope?"
 		if( kind in ['STATIC', 'FIELD'] ) :
 			return sum( var[ 2 ] == kind for var in c_table )
-		else
+		else :
 			return sum( var[ 2 ] == kind for var in s_table )
 								
 	def kindOf( name ) :		# returns STATIC, FIELD.. of the given identifier by referencing the dicts
@@ -372,8 +372,10 @@ else :
 		print( "Only operates on .jack files" )
 		sys.exit()
 
+pdb.set_trace()
+		
 for file in filelist :
-	call( ["python Tokenizer.py", $file] )
+	call( ["python",  "Tokenizer.py" , file] )
 	# system call for generating nameTokens.xml from the name.jack
 	xml = re.sub( "\.jack" , "Tokens.xml" , file )
 	j_analyzer = Analyzer( xml )	# this does an init and also open the target for writing..

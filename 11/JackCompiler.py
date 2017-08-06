@@ -325,37 +325,36 @@ class VMWriter :
 # that the Analyzer can use to generate VM code
 
 	def __init__( className ) :
-		self.vmout = open( className + '.vm' , "w" )
+		return None
 		
 	def writePush( segment, index ) :	# CONST, ARG, LOCAL, STATIC, THIS, THAT, POINTER, TEMP and integer for index
-		self.vmout.write( 'push ' + segment + str( index ) + "\n" )
+		return 'push ' + segment + str( index ) + "\n" 
 		
 	def writePop( segment, index ) :
-		self.vmout.write( 'pop ' + segment + str( index )  + "\n" )
+		return 'pop ' + segment + str( index )  + "\n" 
 	
 	def writeArithmetic( cmd ) :
-		self.vmout.write( cmd  + "\n" )
+		return cmd  + "\n" 
 		
 	def writeLabel( label ) :
-		self.vmout.write( 'label ' + label + "\n" )
+		return 'label ' + label + "\n" 
 	
 	def writeGoto( label ) :
-		self.vmout.write( 'goto ' + label + "\n" )
+		return 'goto ' + label + "\n" 
 		
 	def writeIf( label ) :
-		self.vmout.write( 'if-goto ' + label + "\n" )
+		return 'if-goto ' + label + "\n" 
 		
 	def writeCall( name, nArgs ) :
-		self.vmout.write( 'call ' + name + ' ' + str( nArgs ) + "\n" )
+		return 'call ' + name + ' ' + str( nArgs ) + "\n" 
 	
 	def writeFunction( name, nLocals ) :
-		self.vmout.write( 'function ' + name + ' ' + str( nLocals ) + "\n" )
+		return 'function ' + name + ' ' + str( nLocals ) + "\n" 
 	
 	def writeReturn( ) :
-		self.vmout.write( "return\n" )
+		return "return\n" )
 		
-	def close() :
-		self.vmout.close()
+
 			
 # Main program :
 

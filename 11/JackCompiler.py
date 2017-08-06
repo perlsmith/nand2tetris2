@@ -96,7 +96,7 @@ class Analyzer():
 		
 		self.rules['_subExp'] = ['[+\-*/|=]|&lt;|&gt;|&amp;' , 1 , 'term' , 1 ]	# intended for us in a regex search -- 
 		self.elements['_subExp'] = ['symbol' , 'rule']	# special case - CSV - the rule-entry - in this case op will go out as <op> CSV-item </op>
-		self.toDo['_subExp'] = [1, 'n/a', 0 , 'writeArithmetic']
+		self.toDo['_subExp'] = [1, 'vmgen.writeArithmetic', 0 , 'n/a']
 		
 		self.rules['term'] = ['_subroutineCall||_arrayElem||_constant||_keywordConstant||_varName||_paranthExp||_unOpTerm' , 1]
 		self.elements['term'] = ['rule||rule||rule||rule||rule||rule||rule']	
@@ -108,7 +108,7 @@ class Analyzer():
 		self.elements['_paranthExp'] = ['symbol' , 'rule' , 'symbol' ]
 		self.rules['_unOpTerm' ] = ['[-~]' , 1 , 'term' , 1 ]
 		self.elements['_unOpTerm' ] = ['symbol', 'rule']	# this is another special case - a CSV -- you put the rule-entry - in this case, <unaryOp>
-		self.toDo['_unOpTerm'] = [ 1, 'symTab.symbolSub', 0 , 'vmgen.arithLogGen' ]
+		self.toDo['_unOpTerm'] = [ 1 , 'vmgen.arithLogGen' , 0 , 'symTab.symbolSub' ]
 		
 		self.rules['_subroutineCall' ] = [ '.*' , 1 , '_cmCallMarker' , 2 , '\(' , 1, 'expressionList' , 1 , '\)' , 1 ]
 		self.elements['_subroutineCall' ] = [ 'identifier' , 'rule' , 'symbol' , 'rule' , 'symbol' ]
@@ -166,6 +166,7 @@ class Analyzer():
 		numR = len( rule ) >> 1		# dividing by 2 gets you # of sub-rules
 		howMany = 0;
 		hits = [False] * numR
+		capture = ''	# intended for use by exec
 
 		while( appetite ) :
 			depth = 0		# local depth -- as you move from left to right, you have to increment
@@ -206,6 +207,10 @@ class Analyzer():
 									satisfied = True
 									hits[ i ] = True
 									buffer = buffer + self.nextline		# doesn't sound pretty, but..
+									if( ruleName in self.toDo ) : 
+										pdb.set_trace()
+										exec( 'capture = self.' + self.toDo[ ruleName ][2*i + 1] + "( '" + self.token + "' )"  )
+										VMbuf.append( capture )	# the re-arrangement will happen later
 
 								else :		# went weeks without this :)
 									self.tokenStack = [self.nextline] + self.tokenStack
@@ -358,7 +363,7 @@ class VMWriter :
 	def writePop( segment, index ) :
 		return 'pop ' + segment + str( index )  + "\n" 
 	
-	def writeArithmetic( cmd ) :
+	def writeArithmetic( self, cmd ) :
 		VMcmd = cmd
 		if( '+' == cmd ) :
 			VMcmd = 'add'
@@ -370,16 +375,16 @@ class VMWriter :
 			VMcmd = 'call Math.multiply 2'
 		elif( '=' == cmd ) :
 			VMcmd = 'eq'
-		elif( '&lt' == cmd ) :
+		elif( '&lt;' == cmd ) :
 			VMcmd = 'lt'
-		elif( '&gt' == cmd ) :
+		elif( '&gt;' == cmd ) :
 			VMcmd = 'gt'
-		elif( '&amp' == cmd ) :
+		elif( '&amp;' == cmd ) :
 			VMcmd = 'and'
 
 		return VMcmd  + "\n" 
 
-	def writeUnary( cmd ) :
+	def writeUnary( self, cmd ) :
 		VMcmd = cmd
 		if( '-' == cmd ) :
 			VMcmd = 'neg'

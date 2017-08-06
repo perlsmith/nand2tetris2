@@ -165,6 +165,7 @@ class Analyzer():
 		whatIs = self.elements[ruleName]	# now, whatIs tells you what each element of rule is - what token, or what (other) rule to look for
 		numR = len( rule ) >> 1		# dividing by 2 gets you # of sub-rules
 		howMany = 0;
+		hits = [False] * numR
 
 		while( appetite ) :
 			depth = 0		# local depth -- as you move from left to right, you have to increment
@@ -193,6 +194,7 @@ class Analyzer():
 								satisfied = True
 								buffer = buffer + subMatch
 								VMbuf.append( subVM )
+								hits[ i ] = True
 							if( '' == subMatch and 1 < need ) :
 								satisfied = True	# question : do we ever have xyz||rule with ?/*?
 							if( result ) :
@@ -202,9 +204,9 @@ class Analyzer():
 								sought = rTypes[j]
 								if ( self.tokenName == type and re.match( rTypes[j] , self.token ) ) :
 									satisfied = True
+									hits[ i ] = True
 									buffer = buffer + self.nextline		# doesn't sound pretty, but..
-									if ruleName in self.toDo :
-										VMbuf.append( self.token )
+
 								else :		# went weeks without this :)
 									self.tokenStack = [self.nextline] + self.tokenStack
 					j = j + 1
@@ -236,6 +238,8 @@ class Analyzer():
 				if ( 1 == need ) :
 					depth = depth + 1	# only keep track of mandatory items... :) 5/24 -- late in the game realization :)
 				
+			# for i in range( numR )
+
 			if( satisfied  ) :	# check for '' if you don't want tags for empty stuff..
 				howMany = howMany + 1
 				if( 3 > hunger ) :		# meaning hunger is 1 or 2, so you are done looking..
@@ -247,7 +251,8 @@ class Analyzer():
 			else :
 				return [final, satisfied, VMfinal ]		# lame spaghetti code, but just get it working for now..
 
-		return [final, satisfied, VMfinal ]		# poor documentation -- should have said why I need this line..
+		return [final, satisfied, VMfinal ]		# takes care of the "satisfied" case - where you'll observe you 
+												# can't have a return statement because of the hunger = 3 case..
 			# in the case of 2 or 3, you only add whatIs if you actually find the patterns..
 		
 		

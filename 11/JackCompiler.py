@@ -143,6 +143,7 @@ class Analyzer():
 		self.outstream.write( buffer )
 		self.outstream.close()
 		
+	# big change here is that VM command list (of strings) and the token buffer are returned..
 	# this is the main operator that uses other methods - maybe an OO noob style deprecated, but..	
 	# elements[xyz][] -- if you see 'rule', that results in another call to analyze()
 	#					-- if you see || then you split on || and process the resulting list in OR fashion - first one that hits terminates
@@ -153,8 +154,10 @@ class Analyzer():
 		# pdb.set_trace()
 		# will call itself recursively when it uses self.rules[] to process the input rule..
 		# get a token, see if it fits, move on.
-		buffer = ''
+		buffer = ''		# this one stays as it is to support back-tracking
+		VMbuf = []
 		final = ''	# more spaghettiness..
+		VMfinal = []
 		sought = ''
 		appetite = True		# if hunger = 1, then, once you see one, you set to False, for ? it's ... you get the idea..
 
@@ -185,10 +188,11 @@ class Analyzer():
 					if ( not satisfied ) :
 						# pdb.set_trace()
 						if( 'rule' == type ) :
-							[subMatch, result] = self.analyze( rTypes[j] , need )	# the recursive call. severity set on the fly
+							[subMatch, result, subVM ] = self.analyze( rTypes[j] , need )	# the recursive call. severity set on the fly
 							if( (not ( '' == subMatch ) ) and (not re.search('fail' , subMatch ) ) ) :
 								satisfied = True
 								buffer = buffer + subMatch
+								VMbuf.append( subVM )
 							if( '' == subMatch and 1 < need ) :
 								satisfied = True	# question : do we ever have xyz||rule with ?/*?
 							if( result ) :
@@ -199,6 +203,8 @@ class Analyzer():
 								if ( self.tokenName == type and re.match( rTypes[j] , self.token ) ) :
 									satisfied = True
 									buffer = buffer + self.nextline		# doesn't sound pretty, but..
+									if ruleName in self.toDo :
+										VMbuf.append( self.token )
 								else :		# went weeks without this :)
 									self.tokenStack = [self.nextline] + self.tokenStack
 					j = j + 1
@@ -216,7 +222,6 @@ class Analyzer():
 						self.tokenStack = tokenStack
 						self.tokenStack = self.tokenStack + [self.nextline]
 
-
 	# example of back-tracking - varDec* - you see one variable declaration, but you're hungry for more
 	# so you read a token, looking for "var", but you get "int" so you have to abort now without failing..
 	# and you have to use this "int" that you just read in.. so..
@@ -224,25 +229,25 @@ class Analyzer():
 #				pdb.set_trace()
 				if ( not satisfied ) :
 					if ( 1==hunger ) :
-						return ['fail : ' + ruleName, False ]
+						return ['fail : ' + ruleName, False, VMfinal ]
 					else :
-						return [final, not( '' == final) ]
+						return [final, not( '' == final), VMfinal ]
 				
 				if ( 1 == need ) :
 					depth = depth + 1	# only keep track of mandatory items... :) 5/24 -- late in the game realization :)
 				
 			if( satisfied  ) :	# check for '' if you don't want tags for empty stuff..
 				howMany = howMany + 1
-				if( 3 > hunger ) :		# only with 3 are you looking for *
+				if( 3 > hunger ) :		# meaning hunger is 1 or 2, so you are done looking..
 					appetite = False
 				if( not re.match( '_' , ruleName ) ) :
 					buffer = '<' + ruleName + ">\n" + re.sub(r"^(.)" , r"  \1", buffer , flags=re.MULTILINE) + '</' + ruleName + ">\n"	
 				final = final + buffer
 				buffer = ''
 			else :
-				return [final, satisfied]		# lame spaghetti code, but just get it working for now..
+				return [final, satisfied, VMfinal ]		# lame spaghetti code, but just get it working for now..
 
-		return [final, satisfied]
+		return [final, satisfied, VMfinal ]		# poor documentation -- should have said why I need this line..
 			# in the case of 2 or 3, you only add whatIs if you actually find the patterns..
 		
 		
@@ -282,7 +287,7 @@ class SymbolTable :
 	# maintain 2 dicts - one for the fields and one for the sub vars - locals and arguments
 	# essentially, the symbol table is a scratchpad that assists you in code-generation..
 
-	def __init__() :
+	def __init__( self ) :
 		self.c_table = {}
 		self.c_index = 0
 	
@@ -339,7 +344,7 @@ class VMWriter :
 # with the scheme I've chosen for analysis, having an object here makes no sense - so, in our case, it's just a library of functions
 # that the Analyzer can use to generate VM code
 
-	def __init__( className ) :
+	def __init__( self ) :
 		return None
 		
 	def writePush( segment, index ) :	# CONST, ARG, LOCAL, STATIC, THIS, THAT, POINTER, TEMP and integer for index
@@ -371,7 +376,7 @@ class VMWriter :
 
 	def writeUnary( cmd ) :
 		VMcmd = cmd
-		if( '-' = cmd ) :
+		if( '-' == cmd ) :
 			VMcmd = 'neg'
 		elif( '~' == cmd ) :
 			VMcmd = 'not'

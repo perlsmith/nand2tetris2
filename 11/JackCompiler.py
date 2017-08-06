@@ -321,6 +321,8 @@ class SymbolTable :
 
 			
 class VMWriter :
+# with the scheme I've chosen for analysis, having an object here makes no sense - so, in our case, it's just a library of functions
+# that the Analyzer can use to generate VM code
 
 	def __init__( className ) :
 		self.vmout = open( className + '.vm' , "w" )

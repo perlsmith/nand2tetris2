@@ -96,7 +96,7 @@ class Analyzer():
 		
 		self.rules['_subExp'] = ['[+\-*/|=]|&lt;|&gt;|&amp;' , 1 , 'term' , 1 ]	# intended for us in a regex search -- 
 		self.elements['_subExp'] = ['symbol' , 'rule']	# special case - CSV - the rule-entry - in this case op will go out as <op> CSV-item </op>
-		self.toDo['_subExp'] = [1, 'n/a', 0 , ']
+		self.toDo['_subExp'] = [1, 'n/a', 0 , 'writeArithmetic']
 		
 		self.rules['term'] = ['_subroutineCall||_arrayElem||_constant||_keywordConstant||_varName||_paranthExp||_unOpTerm' , 1]
 		self.elements['term'] = ['rule||rule||rule||rule||rule||rule||rule']	
@@ -108,7 +108,8 @@ class Analyzer():
 		self.elements['_paranthExp'] = ['symbol' , 'rule' , 'symbol' ]
 		self.rules['_unOpTerm' ] = ['[-~]' , 1 , 'term' , 1 ]
 		self.elements['_unOpTerm' ] = ['symbol', 'rule']	# this is another special case - a CSV -- you put the rule-entry - in this case, <unaryOp>
-		self.toDo['_unOpTerm'] = [ 1, 'symbolSub', 0 , 'arithLogGen' ]
+		self.toDo['_unOpTerm'] = [ 1, 'symTab.symbolSub', 0 , 'vmgen.arithLogGen' ]
+		
 		self.rules['_subroutineCall' ] = [ '.*' , 1 , '_cmCallMarker' , 2 , '\(' , 1, 'expressionList' , 1 , '\)' , 1 ]
 		self.elements['_subroutineCall' ] = [ 'identifier' , 'rule' , 'symbol' , 'rule' , 'symbol' ]
 		self.rules['_cmCallMarker'] = ['\.' , 1, '.*' , 1]
@@ -136,6 +137,7 @@ class Analyzer():
 		self.lineN = 1
 		self.encode_lingo()
 		self.vmgen = VMWriter()
+		self.symTab = SymbolTable()
 
 	def Write( self, buffer ) :		# buffer could be very big - so might need a better way to deal with this
 		self.outstream.write( buffer )
@@ -328,6 +330,9 @@ class SymbolTable :
 			return self.c_table[ name ][ 0 ]
 		else :
 			return -1
+			
+	def symbolSub( name ) :
+		return 'dummy for now'
 
 			
 class VMWriter :

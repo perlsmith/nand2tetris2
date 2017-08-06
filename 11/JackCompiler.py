@@ -21,9 +21,13 @@
 # what's different - the SyntaxAnalyzer can just use rules and elements to infer structure from a token stream
 # over here, we have an additional intelligence in the toDo dict, that tells the analyze routine what to do with
 # the buffer it gets back from a slave call (recursive call to analyze). Also, buffer is no longer a string but
-# but a list. So, for example, consider _unOpTerm, it uses calls to convert -xCoord to neg and varPut xCoord but
+# a list. So, for example, consider _unOpTerm, it uses calls to convert "-xCoord" to neg and varPut xCoord but
 # in postfix order.. It knows to do this because the self.toDo['_unOpTerm'] contains 
 # [1, 'symbolSub', 0 , 'arithLogGen' ]
+# the numbers tell the analyze routine in what order to dump the buffer contents 
+# the strings tell analyze what functions to call.. (exec is what will be used eventually..)
+
+# succinctly, terminal rules generate VM code and non-terminal rules re-arrange VM code (and add code if necessary)
 
 import sys
 import re
@@ -39,6 +43,7 @@ class Analyzer():
 	def encode_lingo( self) :
 		self.rules = {}		# tells you what to look for  --- not the token type, but the token itself (which could be some big thing.. like a subr)
 		self.elements = {}	# tells you what tag you're going to write to the output..  -- what kind of thing satisfies each element of 'rules'
+		self.toDo = {}
 		# note : 1 => 1, 2 => 0 or 1 (?) , 3 => 0 or more (*)
 		self.rules['class'] = ['class' , 1, '.*' , 1, '{' , 1 ,  'classVarDec' , 3, 'subroutineDec' , 3 , '}' , 1 ]
 		self.elements['class'] = ['keyword', 'identifier' , 'symbol', 'rule' , 'rule' , 'symbol' ]
@@ -86,9 +91,13 @@ class Analyzer():
 		self.elements['returnStatement'] = ['keyword' , 'rule' , 'symbol' ]
 		self.rules['expression'] = ['term' , 1 , '_subExp' , 3 ]
 		self.elements['expression'] = ['rule' , 'rule' ]
-		# if you detect a _subExp, then you have to go to postfix - which is the VM implementation... where the magic happens..
+		# expression doesn't need to do anything smart - just dump VM commands from term and _subExp
+		self.toDo['expression'] = [0, 'n/a', 1 , 'n/a' ]
+		
 		self.rules['_subExp'] = ['[+\-*/|=]|&lt;|&gt;|&amp;' , 1 , 'term' , 1 ]	# intended for us in a regex search -- 
 		self.elements['_subExp'] = ['symbol' , 'rule']	# special case - CSV - the rule-entry - in this case op will go out as <op> CSV-item </op>
+		self.toDo['_subExp'] = [1, 'n/a', 0 , ']
+		
 		self.rules['term'] = ['_subroutineCall||_arrayElem||_constant||_keywordConstant||_varName||_paranthExp||_unOpTerm' , 1]
 		self.elements['term'] = ['rule||rule||rule||rule||rule||rule||rule']	
 		self.rules['_constant'] = ['.*||.*' , 1]
@@ -126,6 +135,7 @@ class Analyzer():
 									# reuse the existing token
 		self.lineN = 1
 		self.encode_lingo()
+		self.vmgen = VMWriter()
 
 	def Write( self, buffer ) :		# buffer could be very big - so might need a better way to deal with this
 		self.outstream.write( buffer )
@@ -334,7 +344,33 @@ class VMWriter :
 		return 'pop ' + segment + str( index )  + "\n" 
 	
 	def writeArithmetic( cmd ) :
-		return cmd  + "\n" 
+		VMcmd = cmd
+		if( '+' == cmd ) :
+			VMcmd = 'add'
+		elif( '-' == cmd ) :
+			VMcmd = 'sub'
+		elif( '/' == cmd ) :
+			VMcmd = 'call Math.divide 2'
+		elif( '*' == cmd ) :
+			VMcmd = 'call Math.multiply 2'
+		elif( '=' == cmd ) :
+			VMcmd = 'eq'
+		elif( '&lt' == cmd ) :
+			VMcmd = 'lt'
+		elif( '&gt' == cmd ) :
+			VMcmd = 'gt'
+		elif( '&amp' == cmd ) :
+			VMcmd = 'and'
+
+		return VMcmd  + "\n" 
+
+	def writeUnary( cmd ) :
+		VMcmd = cmd
+		if( '-' = cmd ) :
+			VMcmd = 'neg'
+		elif( '~' == cmd ) :
+			VMcmd = 'not'
+		return VMcmd  + "\n" 
 		
 	def writeLabel( label ) :
 		return 'label ' + label + "\n" 
@@ -352,7 +388,7 @@ class VMWriter :
 		return 'function ' + name + ' ' + str( nLocals ) + "\n" 
 	
 	def writeReturn( ) :
-		return "return\n" )
+		return "return\n" 
 		
 
 			

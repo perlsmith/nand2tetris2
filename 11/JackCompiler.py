@@ -157,7 +157,7 @@ class Analyzer():
 		buffer = ''		# this one stays as it is to support back-tracking
 		VMbuf = []
 		final = ''	# more spaghettiness..
-		VMfinal = []
+		VMfinal = ''
 		sought = ''
 		appetite = True		# if hunger = 1, then, once you see one, you set to False, for ? it's ... you get the idea..
 
@@ -169,6 +169,7 @@ class Analyzer():
 		capture = ''	# intended for use by exec
 
 		while( appetite ) :
+			VMbuf = [''] * numR
 			depth = 0		# local depth -- as you move from left to right, you have to increment
 							# so that, if you fail after finding matching tokens, you die
 							# but, when you process sub-rules, you have to go back to the called depth
@@ -194,7 +195,10 @@ class Analyzer():
 							if( (not ( '' == subMatch ) ) and (not re.search('fail' , subMatch ) ) ) :
 								satisfied = True
 								buffer = buffer + subMatch
-								VMbuf.append( subVM )
+								if( ruleName in self.toDo ) : 
+									VMbuf[ self.toDo[ ruleName ][ 2*i ] ] = subVM
+								else :
+									VMbuf[ i ] = subVM
 								hits[ i ] = True
 							if( '' == subMatch and 1 < need ) :
 								satisfied = True	# question : do we ever have xyz||rule with ?/*?
@@ -208,9 +212,10 @@ class Analyzer():
 									hits[ i ] = True
 									buffer = buffer + self.nextline		# doesn't sound pretty, but..
 									if( ruleName in self.toDo ) : 
-										pdb.set_trace()
-										exec( 'capture = self.' + self.toDo[ ruleName ][2*i + 1] + "( '" + self.token + "' )"  )
-										VMbuf.append( capture )	# the re-arrangement will happen later
+										if( not 'n/a' == self.toDo[ ruleName][2*i + 1] ) :
+											exec( 'capture = self.' + self.toDo[ ruleName ][2*i + 1] + "( '" + self.token + "' )"  )
+											VMbuf[ self.toDo[ ruleName ][ 2*i ] ] = capture # the order is also right 
+																							# onus is now on encode_lingo
 
 								else :		# went weeks without this :)
 									self.tokenStack = [self.nextline] + self.tokenStack
@@ -253,9 +258,11 @@ class Analyzer():
 					buffer = '<' + ruleName + ">\n" + re.sub(r"^(.)" , r"  \1", buffer , flags=re.MULTILINE) + '</' + ruleName + ">\n"	
 				final = final + buffer
 				buffer = ''
+				VMfinal = VMfinal +  "\n".join( VMbuf )
 			else :
 				return [final, satisfied, VMfinal ]		# lame spaghetti code, but just get it working for now..
 
+#		pdb.set_trace()
 		return [final, satisfied, VMfinal ]		# takes care of the "satisfied" case - where you'll observe you 
 												# can't have a return statement because of the hunger = 3 case..
 			# in the case of 2 or 3, you only add whatIs if you actually find the patterns..
@@ -443,8 +450,8 @@ for file in filelist :
 	# system call for generating nameTokens.xml from the name.jack
 	xml = re.sub( "\.jack" , "Tokens.xml" , file )
 	j_analyzer = Analyzer( xml )	# this does an init and also open the target for writing..
-
-	j_analyzer.Write( j_analyzer.analyze('class' , 1 )[0] )
+	[buf, state, VMcmds] = j_analyzer.analyze('class' , 1 )
+	j_analyzer.Write( j_analyzer.analyze('class' , 1 )[2] )
 
 
 

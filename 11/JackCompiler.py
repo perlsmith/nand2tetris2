@@ -92,23 +92,31 @@ class Analyzer():
 		self.rules['expression'] = ['term' , 1 , '_subExp' , 3 ]
 		self.elements['expression'] = ['rule' , 'rule' ]
 		# expression doesn't need to do anything smart - just dump VM commands from term and _subExp
-		self.toDo['expression'] = [0, 'n/a', 1 , 'n/a' ]
+		self.toDo['expression'] = [0, 'dump', 1 , 'dump' ]
 		
 		self.rules['_subExp'] = ['[+\-*/|=]|&lt;|&gt;|&amp;' , 1 , 'term' , 1 ]	# intended for us in a regex search -- 
 		self.elements['_subExp'] = ['symbol' , 'rule']	# special case - CSV - the rule-entry - in this case op will go out as <op> CSV-item </op>
-		self.toDo['_subExp'] = [1, 'vmgen.writeArithmetic', 0 , 'n/a']
+		self.toDo['_subExp'] = [1, 'vmgen.writeArithmetic(', 0 , 'n/a']
 		
-		self.rules['term'] = ['_subroutineCall||_arrayElem||_constant||_keywordConstant||_varName||_paranthExp||_unOpTerm' , 1]
+		self.rules['term'] = ['_subroutineCall||_arrayElem||integerConstant||stringConstant||_keywordConstant||_varName||_paranthExp||_unOpTerm' , 1]
 		self.elements['term'] = ['rule||rule||rule||rule||rule||rule||rule']	
-		self.rules['_constant'] = ['.*||.*' , 1]
-		self.elements['_constant'] = ['integerConstant||stringConstant']
+		self.rules['integerConstant'] = ['.*' , 1]
+		self.elements['integerConstant'] = ['integerConstant']
+		self.toDo['integerConstant'] = [ 0 , "vmgen.writePush( 'constant' , " ]
+		
+		self.rules['stringConstant'] = ['.*', 1]
+		self.elements['stringConstant'] = ['stringConstant']
+		self.toDo['stringConstant'] = [ 0 , '' ]
+		
 		self.rules['_arrayElem'] = ['.*' , 1 , '\[' , 1 , 'expression' , 1 , '\]' , 1 ]
 		self.elements['_arrayElem'] = ['identifier' , 'symbol', 'rule' , 'symbol' ]
 		self.rules['_paranthExp'] = ['\(' , 1 , 'expression' , 1, '\)' , 1]
 		self.elements['_paranthExp'] = ['symbol' , 'rule' , 'symbol' ]
+		self.toDo['_paranthExp'] = [ 1 , 'n/a' , 0 , 'dump' , 2, 'n/a' ]
+		
 		self.rules['_unOpTerm' ] = ['[-~]' , 1 , 'term' , 1 ]
 		self.elements['_unOpTerm' ] = ['symbol', 'rule']	# this is another special case - a CSV -- you put the rule-entry - in this case, <unaryOp>
-		self.toDo['_unOpTerm'] = [ 1 , 'vmgen.arithLogGen' , 0 , 'symTab.symbolSub' ]
+		self.toDo['_unOpTerm'] = [ 1 , 'vmgen.arithLogGen(' , 0 , 'symTab.symbolSub(' ]
 		
 		self.rules['_subroutineCall' ] = [ '.*' , 1 , '_cmCallMarker' , 2 , '\(' , 1, 'expressionList' , 1 , '\)' , 1 ]
 		self.elements['_subroutineCall' ] = [ 'identifier' , 'rule' , 'symbol' , 'rule' , 'symbol' ]
@@ -221,7 +229,9 @@ class Analyzer():
 									buffer = buffer + self.nextline		# doesn't sound pretty, but..
 									if( ruleName in self.toDo ) : 
 										if( not 'n/a' == self.toDo[ ruleName][2*i + 1] ) :
-											exec( 'capture = self.' + self.toDo[ ruleName ][2*i + 1] + "( '" + self.token + "' )"  )
+											# pdb.set_trace()
+											# cmd = 'capture = self.' + self.toDo[ ruleName ][2*i + 1] + " '" + self.token + "' )"
+											exec( 'capture = self.' + self.toDo[ ruleName ][2*i + 1] + " '" + self.token + "' )"  )
 											VMbuf[ self.toDo[ ruleName ][ 2*i ] ] = capture # the order is also right 
 																							# onus is now on encode_lingo
 
@@ -372,10 +382,10 @@ class VMWriter :
 	def __init__( self ) :
 		return None
 		
-	def writePush( segment, index ) :	# CONST, ARG, LOCAL, STATIC, THIS, THAT, POINTER, TEMP and integer for index
+	def writePush( self, segment, index ) :	# CONST, ARG, LOCAL, STATIC, THIS, THAT, POINTER, TEMP and integer for index
 		return 'push ' + segment + str( index ) + "\n" 
 		
-	def writePop( segment, index ) :
+	def writePop( self, segment, index ) :
 		return 'pop ' + segment + str( index )  + "\n" 
 	
 	def writeArithmetic( self, cmd ) :

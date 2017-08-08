@@ -1,0 +1,18 @@
+planner
+
+when we detect something, we know what to do... the question is detecting that we have detected ... :)
+
+first order of business should be getting the debug framework right - Damn!! that is what lets you
+do a little bit every day!! What a moment of insight!!!!
+
+You have to document also what the coder has in his working memory - else, when you 
+read the stuf after 2 months, you don't know what's what.
+
+If you have this info, then you can invest the time in the right amount of reverse engineering..
+
+
+
+Whoopsie daisy, how are we planning on handling strings baby?
+
+Woke up today with the realization that my analyze routine will have to communicate # of matches - else
+how do I know what nArgs or nLocals are?

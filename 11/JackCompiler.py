@@ -206,7 +206,7 @@ class Analyzer():
 					if ( not satisfied ) :
 						# pdb.set_trace()
 						if( 'rule' == type ) :
-							[subMatch, result, subVM ] = self.analyze( rTypes[j] , need )	# the recursive call. severity set on the fly
+							[subMatch, result, subVM, numMatch ] = self.analyze( rTypes[j] , need )	# the recursive call. severity set on the fly
 							if( (not ( '' == subMatch ) ) and (not re.search('fail' , subMatch ) ) ) :
 								satisfied = True
 								buffer = buffer + subMatch
@@ -258,9 +258,9 @@ class Analyzer():
 #				pdb.set_trace()
 				if ( not satisfied ) :
 					if ( 1==hunger ) :
-						return ['fail : ' + ruleName, False, VMfinal ]
+						return ['fail : ' + ruleName, False, VMfinal, howMany ]
 					else :
-						return [final, not( '' == final), VMfinal ]
+						return [final, not( '' == final), VMfinal, howMany ]
 				
 				if ( 1 == need ) :
 					depth = depth + 1	# only keep track of mandatory items... :) 5/24 -- late in the game realization :)
@@ -277,10 +277,10 @@ class Analyzer():
 				buffer = ''
 				VMfinal = VMfinal +  "\n".join( VMbuf )
 			else :
-				return [final, satisfied, VMfinal ]		# lame spaghetti code, but just get it working for now..
+				return [final, satisfied, VMfinal, howMany ]		# lame spaghetti code, but just get it working for now..
 
 #		pdb.set_trace()
-		return [final, satisfied, VMfinal ]		# takes care of the "satisfied" case - where you'll observe you 
+		return [final, satisfied, VMfinal, howMany ]		# takes care of the "satisfied" case - where you'll observe you 
 												# can't have a return statement because of the hunger = 3 case..
 			# in the case of 2 or 3, you only add whatIs if you actually find the patterns..
 		
@@ -467,7 +467,7 @@ for file in filelist :
 	# system call for generating nameTokens.xml from the name.jack
 	xml = re.sub( "\.jack" , "Tokens.xml" , file )
 	j_analyzer = Analyzer( xml )	# this does an init and also open the target for writing..
-	[buf, state, VMcmds] = j_analyzer.analyze('class' , 1 )
+	[buf, state, VMcmds, numM] = j_analyzer.analyze('class' , 1 )
 	j_analyzer.Write( buf )
 	j_analyzer.WriteVM( re.sub( r"\n+" , r"\n", VMcmds , flags=re.MULTILINE)  )
 

@@ -58,6 +58,7 @@ class Analyzer():
 		self.elements['subroutineDec'] = ['keyword' , 'keyword||rule' , 'identifier' , 'symbol' , 'rule', 'symbol', 'rule' ]
 		# what this means is that you first look for keyword : void - if you see void, then your put down <keyword> void </keyword> else
 		# you look at type - which is again looking for keyword : int|char|boolean .... you get the idea..
+		# in the case of a void, you have to return 0... that's the VM mapping..
 		
 		self.rules['parameterList'] = [ '_params' , 2 ]
 		self.elements['parameterList'] = ['rule']
@@ -102,7 +103,7 @@ class Analyzer():
 		self.elements['term'] = ['rule||rule||rule||rule||rule||rule||rule']	
 		self.rules['integerConstant'] = ['.*' , 1]
 		self.elements['integerConstant'] = ['integerConstant']
-		self.toDo['integerConstant'] = [ 0 , "vmgen.writePush( 'constant' , " ]
+		self.toDo['integerConstant'] = [ 0 , "vmgen.writePush( 'constant ' , " ]
 		
 		self.rules['stringConstant'] = ['.*', 1]
 		self.elements['stringConstant'] = ['stringConstant']
@@ -152,8 +153,6 @@ class Analyzer():
 	def Write( self, buffer ) :		# buffer could be very big - so might need a better way to deal with this
 		self.outstream.write( buffer )
 		self.outstream.close()
-
-
 
 	def WriteVM( self, bufVM ) :		# buffer could be very big - so might need a better way to deal with this
 		self.vmstream.write( bufVM )

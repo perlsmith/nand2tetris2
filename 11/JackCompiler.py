@@ -129,7 +129,9 @@ class Analyzer():
 	def __init__( self, filename ):
 		self.instream = open( filename, "r")	# be nice to do some exception handling :)
 		target = re.sub( "Tokens\.xml" , "Analyzed.xml" , filename )
+		vmtgt = re.sub( "Tokens\.xml" , ".vm" , filename )
 		self.outstream = open( target, "w" )
+		self.vmstream = open( vmtgt, "w" )
 		self.nextline = ''
 		self.tokenStack = []		# this enables backtracking - you have a token you read, now you have to 
 									# stop processing this rule and process another one - so you have to
@@ -142,6 +144,12 @@ class Analyzer():
 	def Write( self, buffer ) :		# buffer could be very big - so might need a better way to deal with this
 		self.outstream.write( buffer )
 		self.outstream.close()
+
+
+
+	def WriteVM( self, bufVM ) :		# buffer could be very big - so might need a better way to deal with this
+		self.vmstream.write( bufVM )
+		self.vmstream.close()
 		
 	# big change here is that VM command list (of strings) and the token buffer are returned..
 	# this is the main operator that uses other methods - maybe an OO noob style deprecated, but..	
@@ -451,8 +459,8 @@ for file in filelist :
 	xml = re.sub( "\.jack" , "Tokens.xml" , file )
 	j_analyzer = Analyzer( xml )	# this does an init and also open the target for writing..
 	[buf, state, VMcmds] = j_analyzer.analyze('class' , 1 )
-	j_analyzer.Write( j_analyzer.analyze('class' , 1 )[2] )
-
+	j_analyzer.Write( buf )
+	j_analyzer.WriteVM( re.sub( r"\n+" , r"\n", VMcmds , flags=re.MULTILINE)  )
 
 
 		

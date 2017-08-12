@@ -55,20 +55,20 @@ class Analyzer():
 		# here, you also need feed-forward communiction (ain't this the definition of spaghetti code?)
 		# because, classVarDec knows type, but _addlVarDec does not.. -- this necessitates a self.currentType that _addlVarDec can use.. what a shame:) but Elon Musk would like it..
 		# So, here, _type needs to set currentType and the classVarDec only needs to upate the symbol Table with the identifier
-		self.toDo['classVarDec'] = [ -1 , "self.currentKind = '" , 0 , 'n/a' , 0 , 'symTab.Define(  self.currentType, self.currentKind, ' , 0 , 'n/a', 0, 'n/a']
+		self.toDo['classVarDec'] = [ -1 , "self.currentKind = '%'" , 0 , 'n/a' , 0 , 'symTab.Define(  self.currentType, self.currentKind, ' , 0 , 'n/a', 0, 'n/a']
 		# again - sad to have to use this - when analyze sees a '-1', it'll just excecute, rather than executing and capturing :(  spaghetti code :(
 	
 		self.rules['_addlVarDec'] = [',' , 1, '.*', 1 ]		# _name implies this rule will not generate a token
 		self.elements['_addlVarDec'] = ['symbol', 'identifier']
-		self.toDo['_addlVarDec'] = [0, 'n/a' , -1 , "symTab.Define( self.currentType, self.currentKind, "]	# very similar to what classVarDec does - this one depends on that to set kind, type
+		self.toDo['_addlVarDec'] = [0, 'n/a' , -1 , "symTab.Define( self.currentType, self.currentKind, '%')"]	# very similar to what classVarDec does - this one depends on that to set kind, type
 		
 		self.rules['_type'] = ['int|char|boolean||.*' , 1]
 		self.elements['_type'] = ['keyword||identifier']
-		self.toDo['_type'] = [ -1 , "self.currentType = '"]
+		self.toDo['_type'] = [ -1 , "self.currentType = '%'"]
 		
 		self.rules['subroutineDec'] = ['constructor|function|method' , 1 , 'void||_type' , 1 , '.*' , 1 , '\(', 1, 'parameterList' , 1 , '\)' , 1, 'subroutineBody' , 1]
 		self.elements['subroutineDec'] = ['keyword' , 'keyword||rule' , 'identifier' , 'symbol' , 'rule', 'symbol', 'rule' ]
-		self.toDo['subroutineDec'] = [ -1 , "self.currentKind = '" , -1 , "self.currentType = '" , -1, "self.currentName = '",  0 , 'n/a', 0 , 'n/a',
+		self.toDo['subroutineDec'] = [ -1 , "self.currentKind = '%'" , -1 , "self.currentType = '%'" , -1, "self.currentName = '%'",  0 , 'n/a', 0 , 'n/a',
 										-2 , "symTab.Define( self.currentType, self.currentKind, 'function.' + self.currentName)" , 0 , 'n/a' ]
 		# what this means is that you first look for keyword : void - if you see void, then your put down <keyword> void </keyword> else
 		# you look at type - which is again looking for keyword : int|char|boolean .... you get the idea..
@@ -260,7 +260,8 @@ class Analyzer():
 											if( -2 == self.toDo[ruleName][2*i] ) :		# here, not only no capture, we don't add anything to the code in the toDo item..
 												exec( self.toDo[ ruleName ][ 2*i + 1 ] )
 											elif( -1 == self.toDo[ruleName][2*i] ) :		# started with classVarDec :) -- here, no need to do a capture
-												exec( self.toDo[ ruleName ][ 2*i + 1 ] + self.token + "'" )
+												cmd = re.sub( '%' , self.token, self.toDo[ ruleName ][ 2*i + 1 ] )
+												exec( self.toDo[ cmd ] )
 												VMbuf[ self.toDo[ ruleName ][ 2*i ] ] = self.token		# this way, _type can do double duty :) sorry for spaghetti :)
 											else :
 												# pdb.set_trace()

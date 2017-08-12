@@ -43,13 +43,21 @@ class Analyzer():
 	def encode_lingo( self) :
 		self.rules = {}		# tells you what to look for  --- not the token type, but the token itself (which could be some big thing.. like a subr)
 		self.elements = {}	# tells you what tag you're going to write to the output..  -- what kind of thing satisfies each element of 'rules'
-		self.toDo = {}
+		self.toDo = {}		# tells you what to do when processing each rule -- key tells you in what 
 		# note : 1 => 1, 2 => 0 or 1 (?) , 3 => 0 or more (*)
 		self.rules['class'] = ['class' , 1, '.*' , 1, '{' , 1 ,  'classVarDec' , 3, 'subroutineDec' , 3 , '}' , 1 ]
 		self.elements['class'] = ['keyword', 'identifier' , 'symbol', 'rule' , 'rule' , 'symbol' ]
+			# Nothing to be done here, because the constructor for the Analyzer already initializes the symbol Table
+		
 		self.rules['classVarDec'] = ['static|field' , 1 , '_type' , 1 , '.*' , 1 , '_addlVarDec', 3  , ';' , 1 ]	# note that static/field are "kind"
 		self.elements['classVarDec'] = ['keyword' , 'rule' , 'identifier' , 'rule', 'symbol']
 	# create a new entry in symbol table
+		# here, you also need feed-forward communiction (ain't this the definition of spaghetti code?)
+		# because, classVarDec knows type, but _addlVarDec does not.. -- this necessitates a self.currentType that _addlVarDec can use.. what a shame:) but Elon Musk would like it..
+		# So, here, _type needs to set currentType and the classVarDec only needs to upate the symbol Table with the identifier
+		self.toDo['classVarDec'] = [ -1 , "self.currentKind = '" , 0 , 'n/a' , 0 , 'symTab.Define(  self.currentType, self.currentKind, ' , 0 , 'n/a', 0, 'n/a']
+		# again - sad to have to use this - when analyze sees a '-1', it'll just excecute, rather than executing and capturing :(  spaghetti code :(
+	
 		self.rules['_addlVarDec'] = [',' , 1, '.*', 1 ]		# _name implies this rule will not generate a token
 		self.elements['_addlVarDec'] = ['symbol', 'identifier']
 		self.rules['_type'] = ['int|char|boolean||.*' , 1]
@@ -107,7 +115,7 @@ class Analyzer():
 		
 		self.rules['stringConstant'] = ['.*', 1]
 		self.elements['stringConstant'] = ['stringConstant']
-		self.toDo['stringConstant'] = [ 0 , '' ]
+		self.toDo['stringConstant'] = [ 0 , 'vmgen.createString( ' ]		# here, you have to construct the string with a series of calls to String.appendChar - start with String.new first :)
 		
 		self.rules['_arrayElem'] = ['.*' , 1 , '\[' , 1 , 'expression' , 1 , '\]' , 1 ]
 		self.elements['_arrayElem'] = ['identifier' , 'symbol', 'rule' , 'symbol' ]
@@ -149,6 +157,8 @@ class Analyzer():
 		self.encode_lingo()
 		self.vmgen = VMWriter()
 		self.symTab = SymbolTable()
+		self.currentKind = ''
+		self.currentType = ''
 
 	def Write( self, buffer ) :		# buffer could be very big - so might need a better way to deal with this
 		self.outstream.write( buffer )
@@ -228,11 +238,14 @@ class Analyzer():
 									buffer = buffer + self.nextline		# doesn't sound pretty, but..
 									if( ruleName in self.toDo ) : 
 										if( not 'n/a' == self.toDo[ ruleName][2*i + 1] ) :
-											# pdb.set_trace()
-											# cmd = 'capture = self.' + self.toDo[ ruleName ][2*i + 1] + " '" + self.token + "' )"
-											exec( 'capture = self.' + self.toDo[ ruleName ][2*i + 1] + " '" + self.token + "' )"  )
-											VMbuf[ self.toDo[ ruleName ][ 2*i ] ] = capture # the order is also right 
-																							# onus is now on encode_lingo
+											if( -1 == self.toDo[ruleName][2*i] ) :		# started with classVarDec :) -- here, no need to do a capture
+												exec( self.toDo[ ruleName ][ 2*i + 1 ] + self.token + "'" )
+											else :
+												# pdb.set_trace()
+												# cmd = 'capture = self.' + self.toDo[ ruleName ][2*i + 1] + " '" + self.token + "' )"
+												exec( 'capture = self.' + self.toDo[ ruleName ][2*i + 1] + " '" + self.token + "' )"  )	# so, it's whatever you got, and then here we add token
+												VMbuf[ self.toDo[ ruleName ][ 2*i ] ] = capture # the order is also right 
+																								# onus is now on encode_lingo
 
 								else :		# went weeks without this :)
 									self.tokenStack = [self.nextline] + self.tokenStack
@@ -320,6 +333,7 @@ class Analyzer():
 class SymbolTable :
 	# maintain 2 dicts - one for the fields and one for the sub vars - locals and arguments
 	# essentially, the symbol table is a scratchpad that assists you in code-generation..
+	# if the var is not of a known type - int, char, boolean - then it's a class - and that's what happeneth to String..
 
 	def __init__( self ) :
 		self.c_table = {}
@@ -330,7 +344,7 @@ class SymbolTable :
 		self.s_table = {}
 		self.s_index = 0
 	
-	def Define( name, type, kind ) :	# string, string, STATIC, FIELD, ARG or VAR -- creates a new entry in the table 
+	def Define( self, type, kind, name ) :	# string, STATIC, FIELD, ARG or VAR and string -- creates a new entry in the table 
 										# static and field are class scope, arg and var are sub scope
 		if( kind in ['STATIc', 'FIELD'] ) :
 			self.c_table[ name ] = [ self.c_index, type, kind ]
@@ -339,14 +353,14 @@ class SymbolTable :
 			self.s_table[ name ] = [ self.s_index, type, kind ]
 			self.s_index += 1
 	
-	def varCount( kind ) :		# return int and takes STATIC, FIELD, ARG or VAR
+	def varCount( self,  kind ) :		# return int and takes STATIC, FIELD, ARG or VAR
 								# "how many of this kind are already defined in current scope?"
 		if( kind in ['STATIC', 'FIELD'] ) :
 			return sum( var[ 2 ] == kind for var in c_table )
 		else :
 			return sum( var[ 2 ] == kind for var in s_table )
 								
-	def kindOf( name ) :		# returns STATIC, FIELD.. of the given identifier by referencing the dicts
+	def kindOf( self, name ) :		# returns STATIC, FIELD.. of the given identifier by referencing the dicts
 		if( self.s_table[ name ] ) :
 			return self.s_table[ name ][ 2 ]
 		elif( self.c_table[ name ] ) :
@@ -354,7 +368,7 @@ class SymbolTable :
 		else :
 			return 'NONE'
 			
-	def typeOf( name ) :
+	def typeOf( self, name ) :
 		if( self.s_table[ name ] ) :
 			return self.s_table[ name ][ 1 ]
 		elif( self.c_table[ name ] ) :
@@ -362,7 +376,7 @@ class SymbolTable :
 		else :
 			return 'NONE'
 	
-	def indexOf( name ) :
+	def indexOf( self, name ) :
 		if( self.s_table[ name ] ) :
 			return self.s_table[ name ][ 0 ]
 		elif( self.c_table[ name ] ) :
@@ -370,7 +384,7 @@ class SymbolTable :
 		else :
 			return -1
 			
-	def symbolSub( name ) :
+	def symbolSub( self, name ) :		# this is the magic one - the one that makes the whole compilation work..
 		return 'dummy for now'
 
 			
@@ -381,6 +395,13 @@ class VMWriter :
 	def __init__( self ) :
 		return None
 		
+	def createString( self, string ) :
+		VMcmd = "call String.new " + len(string) + "\n"	# remember nArgs - and the fact that String is a class!
+		for char in string :
+			VMcmd = VMcmd + "push " + ord( char ) + "\n"
+			VMcmd = VMcmd + "call String.appendChar 2\n"
+		return VMcmd
+	
 	def writePush( self, segment, index ) :	# CONST, ARG, LOCAL, STATIC, THIS, THAT, POINTER, TEMP and integer for index
 		return 'push ' + segment + str( index ) + "\n" 
 		

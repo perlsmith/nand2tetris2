@@ -60,28 +60,44 @@ class Analyzer():
 	
 		self.rules['_addlVarDec'] = [',' , 1, '.*', 1 ]		# _name implies this rule will not generate a token
 		self.elements['_addlVarDec'] = ['symbol', 'identifier']
+		self.toDo['_addlVarDec'] = [0, 'n/a' , -1 , "symTab.Define( self.currentType, self.currentKind, "]	# very similar to what classVarDec does - this one depends on that to set kind, type
+		
 		self.rules['_type'] = ['int|char|boolean||.*' , 1]
 		self.elements['_type'] = ['keyword||identifier']
 		self.toDo['_type'] = [ -1 , "self.currentType = '"]
 		
 		self.rules['subroutineDec'] = ['constructor|function|method' , 1 , 'void||_type' , 1 , '.*' , 1 , '\(', 1, 'parameterList' , 1 , '\)' , 1, 'subroutineBody' , 1]
 		self.elements['subroutineDec'] = ['keyword' , 'keyword||rule' , 'identifier' , 'symbol' , 'rule', 'symbol', 'rule' ]
+		self.toDo['subroutineDec'] = [ -1 , "self.currentKind = '" , -1 , "self.currentType = '" , -1, "self.currentName = '",  0 , 'n/a', 0 , 'n/a',
+										-2 , "symTab.Define( self.currentType, self.currentKind, 'function.' + self.currentName)" , 0 , 'n/a' ]
 		# what this means is that you first look for keyword : void - if you see void, then your put down <keyword> void </keyword> else
 		# you look at type - which is again looking for keyword : int|char|boolean .... you get the idea..
 		# in the case of a void, you have to return 0... that's the VM mapping..
+		# although Shimon failed to mention it, we'll update the symbol table with functions as well - until we figure out a way
+		# that the implementation doesn't need it... You see here that the subroutine declaration header generates no VM code - this is because we don't know the
+		# nLocals :( ... so that's why we're feeding forward the currentName to the subroutineBody in spaghetti style
 		
 		self.rules['parameterList'] = [ '_params' , 2 ]
 		self.elements['parameterList'] = ['rule']
+		# does parameterList need to generate VM code or update the symbol table? No, according to me - all you'll be able to do is check the validity of the arguments
+		
 		self.rules['_params'] = [ '_param' , 1 , '_addlParam' , 3 ]
 		self.elements['_params'] = ['rule' , 'rule' ]
 		self.rules['_param'] = ['_type' , 1, '.*' , 1 ]
 		self.elements['_param'] = ['rule', 'identifier']
 		self.rules['_addlParam' ] = [ ',' , 1 , '_type' , 1 , '.*' , 1]
 		self.elements['_addlParam' ] = [ 'symbol' , 'rule', 'identifier' ]
+		
+		
 		self.rules['subroutineBody'] = ['{' , 1 , 'varDec' , 3 , 'statements' , 1 , '}' , 1 ]
 		self.elements['subroutineBody'] = ['symbol' , 'rule', 'rule', 'symbol' ]
+		self.toDo['subroutineBody'] = [ 0 , 'n/a' , ]
+		# here, when varDec is done, it returns numMatch - which you should now use to enter "function currentName nLocals" correctly..
+		
 		self.rules['varDec'] = ['var' , 1, '_type' , 1, '.*' , 1 , '_addlVarDec' , 3 , ';' , 1 ]
 		self.elements['varDec'] = ['keyword' , 'rule' , 'identifier' , 'rule' , 'symbol' ]
+
+
 		self.rules['statements'] = ['_statement' , 3 ]	# this was a curve ball - didn't realize they don't want <statement> ha!
 		self.elements['statements'] = ['rule']
 		self.rules['_statement'] = ['letStatement||ifStatement||whileStatement||doStatement||returnStatement', 1]
@@ -161,6 +177,7 @@ class Analyzer():
 		self.symTab = SymbolTable()
 		self.currentKind = ''
 		self.currentType = ''
+		self.currentName = ''
 
 	def Write( self, buffer ) :		# buffer could be very big - so might need a better way to deal with this
 		self.outstream.write( buffer )
@@ -240,14 +257,18 @@ class Analyzer():
 									buffer = buffer + self.nextline		# doesn't sound pretty, but..
 									if( ruleName in self.toDo ) : 
 										if( not 'n/a' == self.toDo[ ruleName][2*i + 1] ) :
-											if( -1 == self.toDo[ruleName][2*i] ) :		# started with classVarDec :) -- here, no need to do a capture
+											if( -2 == self.toDo[ruleName][2*i] ) :		# here, not only no capture, we don't add anything to the code in the toDo item..
+												exec( self.toDo[ ruleName ][ 2*i + 1 ] )
+											elif( -1 == self.toDo[ruleName][2*i] ) :		# started with classVarDec :) -- here, no need to do a capture
 												exec( self.toDo[ ruleName ][ 2*i + 1 ] + self.token + "'" )
+												VMbuf[ self.toDo[ ruleName ][ 2*i ] ] = self.token		# this way, _type can do double duty :) sorry for spaghetti :)
 											else :
 												# pdb.set_trace()
 												# cmd = 'capture = self.' + self.toDo[ ruleName ][2*i + 1] + " '" + self.token + "' )"
 												exec( 'capture = self.' + self.toDo[ ruleName ][2*i + 1] + " '" + self.token + "' )"  )	# so, it's whatever you got, and then here we add token
 												VMbuf[ self.toDo[ ruleName ][ 2*i ] ] = capture # the order is also right 
 																								# onus is now on encode_lingo
+																								# we need this form of indexing just to get the postfix thing right..
 
 								else :		# went weeks without this :)
 									self.tokenStack = [self.nextline] + self.tokenStack

@@ -62,6 +62,8 @@ class Analyzer():
 		self.elements['_addlVarDec'] = ['symbol', 'identifier']
 		self.rules['_type'] = ['int|char|boolean||.*' , 1]
 		self.elements['_type'] = ['keyword||identifier']
+		self.toDo['_type'] = [ -1 , "self.currentType = '"]
+		
 		self.rules['subroutineDec'] = ['constructor|function|method' , 1 , 'void||_type' , 1 , '.*' , 1 , '\(', 1, 'parameterList' , 1 , '\)' , 1, 'subroutineBody' , 1]
 		self.elements['subroutineDec'] = ['keyword' , 'keyword||rule' , 'identifier' , 'symbol' , 'rule', 'symbol', 'rule' ]
 		# what this means is that you first look for keyword : void - if you see void, then your put down <keyword> void </keyword> else

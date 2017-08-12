@@ -346,12 +346,13 @@ class SymbolTable :
 	
 	def Define( self, type, kind, name ) :	# string, STATIC, FIELD, ARG or VAR and string -- creates a new entry in the table 
 										# static and field are class scope, arg and var are sub scope
-		if( kind in ['STATIc', 'FIELD'] ) :
+		if( kind in ['static', 'field'] ) :
 			self.c_table[ name ] = [ self.c_index, type, kind ]
 			self.c_index += 1
 		else :
 			self.s_table[ name ] = [ self.s_index, type, kind ]
 			self.s_index += 1
+		return ''
 	
 	def varCount( self,  kind ) :		# return int and takes STATIC, FIELD, ARG or VAR
 								# "how many of this kind are already defined in current scope?"

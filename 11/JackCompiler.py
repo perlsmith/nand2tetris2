@@ -106,7 +106,7 @@ class Analyzer():
 		
 		self.rules['subroutineBody'] = ['{' , 1 , 'varDec' , 3 , 'statements' , 1 , '}' , 1 ]
 		self.elements['subroutineBody'] = ['symbol' , 'rule', 'rule', 'symbol' ]
-		self.toDo['subroutineBody'] = [ -2 , 'self.nLocals = 0' , -3, "'function ' + self.currentName + ' ' + str(self.nLocals)", 2, 'n/a' , 0, 'n/a' ]
+		self.toDo['subroutineBody'] = [ -2 , 'self.nLocals = 0' , -3, "self.vmgen.construct( self.currentName, self.nLocals)", 2, 'n/a' , 0, 'n/a' ]
 		# here, when varDec is done, it returns numMatch - which you should now use to enter "function currentName nLocals" correctly..
 		
 		self.rules['varDec'] = ['var' , 1, '_type' , 1, '.*' , 1 , '_addlVarDec' , 3 , ';' , 1 ]
@@ -475,6 +475,13 @@ class VMWriter :
 
 	def __init__( self ) :
 		return None
+		
+	def construct( self , name, nLocals ) :
+		VMcmd = "function " + name + ' ' + str(nLocals) + "\n"
+		VMcmd += "push constant " + str(nLocals) + "\n"
+		VMcmd += "call Memory.alloc 1\n"
+		VMcmd += "pop pointer 0\n" 		# sets the 'this' segment
+		return VMcmd
 		
 	def createString( self, string ) :
 		VMcmd = "call String.new 1\n"	# remember nArgs - and the fact that String is a class!

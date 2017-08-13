@@ -43,6 +43,7 @@ class Analyzer():
 	# the number is (when positive) the position of the final return array that the result of the exce goes in..
 	# when negative, it's a command code : -2 means just execute literally. -1 means substitute % with self.token. In these two cases, analyze doesn't add the self., so you have to :) spaghetti :)
 	# spaghetti coded implementation because orthogonality is very poor - this section needs to know about code in the analyze section..
+	# -3 is only applicable for the case of the sought token being a non-terminal rule..
 
 	def encode_lingo( self) :
 		self.rules = {}		# tells you what to look for  --- not the token type, but the token itself (which could be some big thing.. like a subr)
@@ -95,12 +96,12 @@ class Analyzer():
 		
 		self.rules['subroutineBody'] = ['{' , 1 , 'varDec' , 3 , 'statements' , 1 , '}' , 1 ]
 		self.elements['subroutineBody'] = ['symbol' , 'rule', 'rule', 'symbol' ]
-		self.toDo['subroutineBody'] = [ 0 , 'n/a' , -3, "'function ' + self.currentName + ' ' + str(self.nLocals)", 0, 'n/a' , 0, 'n/a' ]
+		self.toDo['subroutineBody'] = [ -2 , 'self.nLocals = 0' , -3, "'function ' + self.currentName + ' ' + str(self.nLocals)", 0, 'n/a' , 0, 'n/a' ]
 		# here, when varDec is done, it returns numMatch - which you should now use to enter "function currentName nLocals" correctly..
 		
 		self.rules['varDec'] = ['var' , 1, '_type' , 1, '.*' , 1 , '_addlVarDec' , 3 , ';' , 1 ]
 		self.elements['varDec'] = ['keyword' , 'rule' , 'identifier' , 'rule' , 'symbol' ]
-		self.toDo['varDec'] = [ -2, "self.nLocals = 1", 0, 'n/a', 0, 'n/a', -3 , "self.nLocals = self.nLocals + numMatch", 0, 'n/a']
+		self.toDo['varDec'] = [ -2, "self.nLocals = self.nLocals + 1", 0, 'n/a', 0, 'n/a', -3 , "self.nLocals = self.nLocals + numMatch", 0, 'n/a']
 
 
 		self.rules['statements'] = ['_statement' , 3 ]	# this was a curve ball - didn't realize they don't want <statement> ha!

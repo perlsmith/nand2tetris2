@@ -11,8 +11,16 @@ read the stuf after 2 months, you don't know what's what.
 If you have this info, then you can invest the time in the right amount of reverse engineering..
 
 
-
-Whoopsie daisy, how are we planning on handling strings baby?
+Whoopsie daisy, how are we planning on handling strings baby? -- you have to read the Jack API and then
+you'll know all about strings - since you can only work with 16 bits at a time, you have to contruct the
+string with sequence of calls to String.appendChar -- String is a class.. -- this being the case, why
+the hell didn't they mention this in the lecture?
 
 Woke up today with the realization that my analyze routine will have to communicate # of matches - else
 how do I know what nArgs or nLocals are?
+
+-- Aug 12
+
+plan for the day :
+
+go through every rule and add psuedocode for dealing with that rule

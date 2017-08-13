@@ -106,7 +106,7 @@ class Analyzer():
 		
 		self.rules['subroutineBody'] = ['{' , 1 , 'varDec' , 3 , 'statements' , 1 , '}' , 1 ]
 		self.elements['subroutineBody'] = ['symbol' , 'rule', 'rule', 'symbol' ]
-		self.toDo['subroutineBody'] = [ -2 , 'self.nLocals = 0' , -3, "'function ' + self.currentName + ' ' + str(self.nLocals)", 0, 'n/a' , 0, 'n/a' ]
+		self.toDo['subroutineBody'] = [ -2 , 'self.nLocals = 0' , -3, "'function ' + self.currentName + ' ' + str(self.nLocals)", 2, 'n/a' , 0, 'n/a' ]
 		# here, when varDec is done, it returns numMatch - which you should now use to enter "function currentName nLocals" correctly..
 		
 		self.rules['varDec'] = ['var' , 1, '_type' , 1, '.*' , 1 , '_addlVarDec' , 3 , ';' , 1 ]
@@ -272,7 +272,7 @@ class Analyzer():
 								if( ruleName in self.toDo ) : 
 									if( -3 == self.toDo[ruleName][2*i] ) :
 										exec( 'capture = ' + self.toDo[ ruleName ][ 2*i + 1 ] )
-										VMbuf[ self.toDo[ ruleName ][ 2*i ] ] = str(capture)
+										VMbuf[ i ] = str(capture)
 										#print( '... within  ' + ruleName + ' , ' + rTypes[j] + ' : adding ' + capture )
 									elif ( not 'disregard' == self.toDo[ ruleName ][ 2*i + 1 ] ) :
 										VMbuf[ self.toDo[ ruleName ][ 2*i ] ] = subVM

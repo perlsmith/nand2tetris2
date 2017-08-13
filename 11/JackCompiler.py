@@ -39,6 +39,10 @@ from subprocess import call # to be able to get files using *.xml
 class Analyzer():
 
 	# the only motivation for this is to be able to fold and manage the code easily :)
+	# toDo contains command - it could probably just be a list, but is a dict for now
+	# the number is (when positive) the position of the final return array that the result of the exce goes in..
+	# when negative, it's a command code : -2 means just execute literally. -1 means substitute % with self.token. In these two cases, analyze doesn't add the self., so you have to :) spaghetti :)
+	# spaghetti coded implementation because orthogonality is very poor - this section needs to know about code in the analyze section..
 
 	def encode_lingo( self) :
 		self.rules = {}		# tells you what to look for  --- not the token type, but the token itself (which could be some big thing.. like a subr)
@@ -60,7 +64,7 @@ class Analyzer():
 	
 		self.rules['_addlVarDec'] = [',' , 1, '.*', 1 ]		# _name implies this rule will not generate a token
 		self.elements['_addlVarDec'] = ['symbol', 'identifier']
-		self.toDo['_addlVarDec'] = [0, 'n/a' , -1 , "symTab.Define( self.currentType, self.currentKind, '%')"]	# very similar to what classVarDec does - this one depends on that to set kind, type
+		self.toDo['_addlVarDec'] = [0, 'n/a' , -1 , "self.symTab.Define( self.currentType, self.currentKind, '%')"]	# very similar to what classVarDec does - this one depends on that to set kind, type
 		
 		self.rules['_type'] = ['int|char|boolean||.*' , 1]
 		self.elements['_type'] = ['keyword||identifier']
@@ -69,7 +73,7 @@ class Analyzer():
 		self.rules['subroutineDec'] = ['constructor|function|method' , 1 , 'void||_type' , 1 , '.*' , 1 , '\(', 1, 'parameterList' , 1 , '\)' , 1, 'subroutineBody' , 1]
 		self.elements['subroutineDec'] = ['keyword' , 'keyword||rule' , 'identifier' , 'symbol' , 'rule', 'symbol', 'rule' ]
 		self.toDo['subroutineDec'] = [ -1 , "self.currentKind = '%'" , -1 , "self.currentType = '%'" , -1, "self.currentName = '%'",  0 , 'n/a', 0 , 'n/a',
-										-2 , "symTab.Define( self.currentType, self.currentKind, 'function.' + self.currentName)" , 0 , 'n/a' ]
+										-2 , "self.symTab.Define( self.currentType, self.currentKind, 'function.' + self.currentName)" , 0 , 'n/a' ]
 		# what this means is that you first look for keyword : void - if you see void, then your put down <keyword> void </keyword> else
 		# you look at type - which is again looking for keyword : int|char|boolean .... you get the idea..
 		# in the case of a void, you have to return 0... that's the VM mapping..
@@ -91,11 +95,12 @@ class Analyzer():
 		
 		self.rules['subroutineBody'] = ['{' , 1 , 'varDec' , 3 , 'statements' , 1 , '}' , 1 ]
 		self.elements['subroutineBody'] = ['symbol' , 'rule', 'rule', 'symbol' ]
-		self.toDo['subroutineBody'] = [ 0 , 'n/a' , ]
+		self.toDo['subroutineBody'] = [ 0 , 'n/a' , -3, "'function ' + self.currentName + ' ' + str(self.nLocals)", 0, 'n/a' , 0, 'n/a' ]
 		# here, when varDec is done, it returns numMatch - which you should now use to enter "function currentName nLocals" correctly..
 		
 		self.rules['varDec'] = ['var' , 1, '_type' , 1, '.*' , 1 , '_addlVarDec' , 3 , ';' , 1 ]
 		self.elements['varDec'] = ['keyword' , 'rule' , 'identifier' , 'rule' , 'symbol' ]
+		self.toDo['varDec'] = [ -2, "self.nLocals = 1", 0, 'n/a', 0, 'n/a', -2 , "self.nLocals = self.nLocals + numMatch", 0, 'n/a']
 
 
 		self.rules['statements'] = ['_statement' , 3 ]	# this was a curve ball - didn't realize they don't want <statement> ha!
@@ -240,7 +245,13 @@ class Analyzer():
 								satisfied = True
 								buffer = buffer + subMatch
 								if( ruleName in self.toDo ) : 
-									VMbuf[ self.toDo[ ruleName ][ 2*i ] ] = subVM
+									if( -3 == self.toDo[ruleName][2*i] ) :
+										exec( 'capture = ' + self.toDo[ ruleName ][ 2*i + 1 ] )
+										VMbuf[ self.toDo[ ruleName ][ 2*i ] ] = capture
+										print( '... within  ' + ruleName + ' , ' + rTypes[j] + ' : adding ' + capture )
+									elif ( not 'disregard' == self.toDo[ ruleName ][ 2*i + 1 ] ) :
+										print( '... within  ' + ruleName + ' , ' + rTypes[j] + ' : adding ' + subVM )
+										VMbuf[ self.toDo[ ruleName ][ 2*i ] ] = subVM
 								else :
 									VMbuf[ i ] = subVM
 								hits[ i ] = True
@@ -261,8 +272,8 @@ class Analyzer():
 												exec( self.toDo[ ruleName ][ 2*i + 1 ] )
 											elif( -1 == self.toDo[ruleName][2*i] ) :		# started with classVarDec :) -- here, no need to do a capture
 												cmd = re.sub( '%' , self.token, self.toDo[ ruleName ][ 2*i + 1 ] )
-												exec( self.toDo[ cmd ] )
-												VMbuf[ self.toDo[ ruleName ][ 2*i ] ] = self.token		# this way, _type can do double duty :) sorry for spaghetti :)
+												exec( cmd  )				# documentation failure - where do you need the execution and the assignment of token?
+												# VMbuf[ self.toDo[ ruleName ][ 2*i ] ] = self.token		# this way, _type can do double duty :) sorry for spaghetti :)
 											else :
 												# pdb.set_trace()
 												# cmd = 'capture = self.' + self.toDo[ ruleName ][2*i + 1] + " '" + self.token + "' )"
@@ -270,7 +281,7 @@ class Analyzer():
 												VMbuf[ self.toDo[ ruleName ][ 2*i ] ] = capture # the order is also right 
 																								# onus is now on encode_lingo
 																								# we need this form of indexing just to get the postfix thing right..
-
+										print( '... within  ' + ruleName + ' , ' + rTypes[j] + ' : adding (token match) .. ' + capture )
 								else :		# went weeks without this :)
 									self.tokenStack = [self.nextline] + self.tokenStack
 					j = j + 1
@@ -370,12 +381,12 @@ class SymbolTable :
 	
 	def Define( self, type, kind, name ) :	# string, STATIC, FIELD, ARG or VAR and string -- creates a new entry in the table 
 										# static and field are class scope, arg and var are sub scope
-		if( kind in ['static', 'field'] ) :
-			self.c_table[ name ] = [ self.c_index, type, kind ]
-			self.c_index += 1
-		else :
+		if( kind in ['local', 'argument'] ) :
 			self.s_table[ name ] = [ self.s_index, type, kind ]
 			self.s_index += 1
+		else :						# swapped these two around so that I could keep track of functions..
+			self.c_table[ name ] = [ self.c_index, type, kind ]
+			self.c_index += 1
 		return ''
 	
 	def varCount( self,  kind ) :		# return int and takes STATIC, FIELD, ARG or VAR

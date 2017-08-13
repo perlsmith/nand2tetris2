@@ -60,7 +60,7 @@ class Analyzer():
 		# here, you also need feed-forward communication (ain't this the definition of spaghetti code?)
 		# because, classVarDec knows type, but _addlVarDec does not.. -- this necessitates a self.currentType that _addlVarDec can use.. what a shame:) but Elon Musk would like it..
 		# So, here, _type needs to set currentType and the classVarDec only needs to upate the symbol Table with the identifier
-		self.toDo['classVarDec'] = [ -1 , "self.currentKind = '%'" , 0 , 'n/a' , 0 , 'symTab.Define(  self.currentType, self.currentKind, ' , 0 , 'n/a', 0, 'n/a']
+		self.toDo['classVarDec'] = [ -1 , "self.currentKind = '%'" , 0 , 'n/a' , 0 , "self.symTab.Define(  self.currentType, self.currentKind, '%')" , 0 , 'n/a', 0, 'n/a']
 		# again - sad to have to use this - when analyze sees a '-1', it'll just excecute, rather than executing and capturing :(  spaghetti code :(
 	
 		self.rules['_addlVarDec'] = [',' , 1, '.*', 1 ]		# _name implies this rule will not generate a token
@@ -112,7 +112,7 @@ class Analyzer():
 		self.rules['varDec'] = ['var' , 1, '_type' , 1, '.*' , 1 , '_addlVarDec' , 3 , ';' , 1 ]
 		self.elements['varDec'] = ['keyword' , 'rule' , 'identifier' , 'rule' , 'symbol' ]
 		self.toDo['varDec'] = [ -2, "self.nLocals = self.nLocals + 1",  -1 , "self.currentType = '%'", 
-									0 ,	'symTab.Define(  self.currentType, self.currentKind, ', -3 , "self.nLocals = self.nLocals + numMatch", 0, 'n/a']
+									0 ,	"self.symTab.Define(  self.currentType, self.currentKind, '%' )", -3 , "self.nLocals = self.nLocals + numMatch", 0, 'n/a']
 
 
 		self.rules['statements'] = ['_statement' , 3 ]	# this was a curve ball - didn't realize they don't want <statement> ha!
@@ -121,7 +121,11 @@ class Analyzer():
 		self.elements['_statement'] = ['rule||rule||rule||rule||rule']
 		self.rules['letStatement'] = ['let' , 1 , '.*' , 1 , '_index' , 2 , '=' , 1 , 'expression' , 1 , ';' , 1 ]
 		self.elements['letStatement'] = ['keyword' , 'identifier', 'rule' , 'symbol' , 'rule', 'symbol' ]
-		# self.toDo['letStatement'] = [0, 'n/a' , ]
+		self.toDo['letStatement'] = [0, 'n/a' , 1, "self.vmgen.writePushPop( 'pop' , self.symTab.seg_ind( '%' ) )" , 0, 'n/a', 0, 'n/a', 0, 'dump', 0, 'n/a'  ]
+		# this stuff is magic - if the name has a . in it, then you use the this pointer to access the field..
+		# on the LHS, you need to pop - in postfix sense - that is, you first build up the expression given by the RHS using a series
+		# of push commands, and function calls, and then you pop into the segment/index specified by the LHS
+		### for the moment, ignoring array elements..     #### will eventually need a standalone function to make this magic work..		
 		
 		
 		self.rules['_index'] = ['\[' , 1 , 'expression' , 1 , '\]' , 1 ]
@@ -143,17 +147,17 @@ class Analyzer():
 		
 		self.rules['_subExp'] = ['[+\-*/|=]|&lt;|&gt;|&amp;' , 1 , 'term' , 1 ]	# intended for us in a regex search -- 
 		self.elements['_subExp'] = ['symbol' , 'rule']	# special case - CSV - the rule-entry - in this case op will go out as <op> CSV-item </op>
-		self.toDo['_subExp'] = [1, 'vmgen.writeArithmetic(', 0 , 'n/a']
+		self.toDo['_subExp'] = [1, "self.vmgen.writeArithmetic( '%' )", 0 , 'n/a']
 		
 		self.rules['term'] = ['_subroutineCall||_arrayElem||integerConstant||stringConstant||_keywordConstant||_varName||_paranthExp||_unOpTerm' , 1]
 		self.elements['term'] = ['rule||rule||rule||rule||rule||rule||rule']	
 		self.rules['integerConstant'] = ['.*' , 1]
 		self.elements['integerConstant'] = ['integerConstant']
-		self.toDo['integerConstant'] = [ 0 , "vmgen.writePush( 'constant ' , " ]
+		self.toDo['integerConstant'] = [ 0 , "self.vmgen.writePush( 'constant ' , '%' )" ]
 		
 		self.rules['stringConstant'] = ['.*', 1]
 		self.elements['stringConstant'] = ['stringConstant']
-		self.toDo['stringConstant'] = [ 0 , 'vmgen.createString( ' ]		# here, you have to construct the string with a series of calls to String.appendChar - start with String.new first :)
+		self.toDo['stringConstant'] = [ 0 , "self.vmgen.createString( '%' )" ]		# here, you have to construct the string with a series of calls to String.appendChar - start with String.new first :)
 		
 		self.rules['_arrayElem'] = ['.*' , 1 , '\[' , 1 , 'expression' , 1 , '\]' , 1 ]
 		self.elements['_arrayElem'] = ['identifier' , 'symbol', 'rule' , 'symbol' ]
@@ -163,7 +167,7 @@ class Analyzer():
 		
 		self.rules['_unOpTerm' ] = ['[-~]' , 1 , 'term' , 1 ]
 		self.elements['_unOpTerm' ] = ['symbol', 'rule']	# this is another special case - a CSV -- you put the rule-entry - in this case, <unaryOp>
-		self.toDo['_unOpTerm'] = [ 1 , 'vmgen.arithLogGen(' , 0 , 'symTab.symbolSub(' ]
+		self.toDo['_unOpTerm'] = [ 1 , "self.vmgen.arithLogGen('%')" , 0 , "self.vmgen.writePushPop( 'push', self.symTab.seg_ind('%') )" ]
 		
 		self.rules['_subroutineCall' ] = [ '.*' , 1 , '_cmCallMarker' , 2 , '\(' , 1, 'expressionList' , 1 , '\)' , 1 ]
 		self.elements['_subroutineCall' ] = [ 'identifier' , 'rule' , 'symbol' , 'rule' , 'symbol' ]
@@ -298,7 +302,10 @@ class Analyzer():
 											else :
 												# pdb.set_trace()
 												# cmd = 'capture = self.' + self.toDo[ ruleName ][2*i + 1] + " '" + self.token + "' )"
-												exec( 'capture = self.' + self.toDo[ ruleName ][2*i + 1] + " '" + self.token + "' )"  )	# so, it's whatever you got, and then here we add token
+												# exec( 'capture = self.' + self.toDo[ ruleName ][2*i + 1] + " '" + self.token + "' )"  )	# so, it's whatever you got, and then here we add token
+												## had to retire the above way because I couldn't handle fn1( fn2 ( self.token ) ) with that approach - easier to substitute % with.. and call
+												cmd = 'capture = ' + re.sub( '%', self.token, self.toDo[ ruleName ][ 2*i + 1 ] )
+												exec( cmd )
 												VMbuf[ self.toDo[ ruleName ][ 2*i ] ] = str(capture) # the order is also right 
 																								# onus is now on encode_lingo
 																								# we need this form of indexing just to get the postfix thing right..
@@ -392,23 +399,33 @@ class SymbolTable :
 	# if the var is not of a known type - int, char, boolean - then it's a class - and that's what happeneth to String..
 
 	def __init__( self ) :
-		self.c_table = {}
-		self.c_index = 0
+		self.s_table = {}	# static segment
+		self.t_table = {}	# 'this' segment (field variables)
+		self.t_index = 0
+		self.s_index = 0
 		self.f_table = {}
 	
 	
 	def startSubroutine( self ) :	# this guy just clears the sub symbol table
-		self.s_table = {}
-		self.s_index = 0
+		self.l_table = {}	# local segment
+		self.l_index = 0
+		self.a_table = {}	# argument segment
+		self.a_index = 0
 	
 	def Define( self, type, kind, name ) :	# string, STATIC, FIELD, ARG or VAR and string -- creates a new entry in the table 
-										# static and field are class scope, arg and var are sub scope
-		if( kind in ['local', 'argument'] ) :
-			self.s_table[ name ] = [ self.s_index, type, kind ]
+										# static and field are class scope, arg and var are sub scope; can't have arg and local vars named the same..
+		if( kind == 'argument' ) :
+			self.a_table[ name ] = [ self.a_index, type ]
+			self.a_index += 1
+		elif ( kind == 'local' ) :
+			self.l_table[ name ] = [ self.l_index, type ]
+			self.l_index += 1
+		elif( kind == 'static' ) :
+			self.s_table[ name ] = [ self.s_index, type ]
 			self.s_index += 1
-		elif( kind in ['static', 'field' ] ) :						# swapped these two around so that I could keep track of functions..
-			self.c_table[ name ] = [ self.c_index, type, kind ]
-			self.c_index += 1
+		elif( kind == 'field' ) :	
+			self.t_table[ name ] = [ self.t_index, type ]
+			self.t_index += 1
 		else :
 			self.f_table[ name ] = [type, kind]			# kind will be constructor|function|method and type will be return type - void or whatever
 		return ''
@@ -436,12 +453,16 @@ class SymbolTable :
 		else :
 			return 'NONE'
 	
-	def indexOf( self, name ) :
-		if( self.s_table[ name ] ) :
-			return self.s_table[ name ][ 0 ]
-		elif( self.c_table[ name ] ) :
-			return self.c_table[ name ][ 0 ]
-		else :
+	def seg_ind( self, name ) :
+		if( name in self.a_table ) :		# first go to argument segment -- truly even local could be first..
+			return 'argument ' + str( self.a_table[ name ][ 0 ] )
+		elif( name in self.l_table ) :
+			return 'local ' + str( self.l_table[ name ][ 0 ] )
+		elif( name in self.s_table ) :
+			return 'static ' + str( self.s_table[ name ][ 0 ] )
+		elif( name in self.t_table ) :
+			return 'this ' + str( self.t_table[ name ][ 0 ] )
+		else :			# unknown variable name
 			return -1
 			
 	def symbolSub( self, name ) :		# this is the magic one - the one that makes the whole compilation work..
@@ -467,6 +488,9 @@ class VMWriter :
 		
 	def writePop( self, segment, index ) :
 		return 'pop ' + segment + str( index )  + "\n" 
+		
+	def writePushPop( self, cmd, seg_ind ) :
+		return cmd + ' ' + seg_ind
 	
 	def writeArithmetic( self, cmd ) :
 		VMcmd = cmd

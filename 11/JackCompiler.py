@@ -153,6 +153,11 @@ class Analyzer():
 		
 		self.rules['_subroutineCall' ] = [ '.*' , 1 , '_cmCallMarker' , 2 , '\(' , 1, 'expressionList' , 1 , '\)' , 1 ]
 		self.elements['_subroutineCall' ] = [ 'identifier' , 'rule' , 'symbol' , 'rule' , 'symbol' ]
+		# here's where you have to pull the rabbit out of the hat -- for a constructor, you don't care. But, for a function, if return type is void,
+		# then you have to insert a return 0.. (push constant 0, return )
+		# if it's a method, then you have to first of all add 1 to the nArgs and set ARG #0 to the address of the object (this)
+		# and then you have to also check for void and insert return 0 if necessary. 
+		
 		self.rules['_cmCallMarker'] = ['\.' , 1, '.*' , 1]
 		self.elements['_cmCallMarker'] = [ 'symbol' , 'identifier' ]
 		self.rules['expressionList' ] = [ '_expressions' , 2 ] 
@@ -433,9 +438,9 @@ class VMWriter :
 		return None
 		
 	def createString( self, string ) :
-		VMcmd = "call String.new " + len(string) + "\n"	# remember nArgs - and the fact that String is a class!
+		VMcmd = "call String.new 1\n"	# remember nArgs - and the fact that String is a class!
 		for char in string :
-			VMcmd = VMcmd + "push " + ord( char ) + "\n"
+			VMcmd = VMcmd + "push " + str(ord( char )) + "\n"
 			VMcmd = VMcmd + "call String.appendChar 2\n"
 		return VMcmd
 	

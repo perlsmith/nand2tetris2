@@ -24,3 +24,14 @@ how do I know what nArgs or nLocals are?
 plan for the day :
 
 go through every rule and add psuedocode for dealing with that rule
+
+-- Aug 13 
+
+let statement involves looking up the symbol table.. when it's a field var, you use the this segment..
+start with simple variables - local are the simplest..
+can we get this much right?
+let var = exp
+
+exp on stack
+pop local #offset
+getting the offset is the hard part.. for now, let's just cheat and have 4 segments : static, local, arg, field

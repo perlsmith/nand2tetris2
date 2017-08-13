@@ -73,25 +73,35 @@ class Analyzer():
 		
 		self.rules['subroutineDec'] = ['constructor|function|method' , 1 , 'void||_type' , 1 , '.*' , 1 , '\(', 1, 'parameterList' , 1 , '\)' , 1, 'subroutineBody' , 1]
 		self.elements['subroutineDec'] = ['keyword' , 'keyword||rule' , 'identifier' , 'symbol' , 'rule', 'symbol', 'rule' ]
-		self.toDo['subroutineDec'] = [ -1 , "self.currentKind = '%'" , -1 , "self.currentType = '%'" , -1, "self.currentName = '%'",  0 , 'n/a', 0 , 'n/a',
-										-2 , "self.symTab.Define( self.currentType, self.currentKind, 'function.' + self.currentName)" , 0 , 'n/a' ]
+		self.toDo['subroutineDec'] = [ -1 , "self.currentFnKind = '%'" , -1 , "self.currentType = '%'\nself.symTab.startSubroutine()" , 
+										-1, "self.currentName = '%'",  -2 , "self.currentKind = 'argument'",  0 , 'n/a' ,
+										-2 , "self.currentKind = 'local'\nself.symTab.Define( self.currentType, self.currentFnKind, 'function.' + self.currentName)" , 0 , 'n/a' ]
 		# what this means is that you first look for keyword : void - if you see void, then your put down <keyword> void </keyword> else
 		# you look at type - which is again looking for keyword : int|char|boolean .... you get the idea..
 		# in the case of a void, you have to return 0... that's the VM mapping..
 		# although Shimon failed to mention it, we'll update the symbol table with functions as well - until we figure out a way
 		# that the implementation doesn't need it... You see here that the subroutine declaration header generates no VM code - this is because we don't know the
 		# nLocals :( ... so that's why we're feeding forward the currentName to the subroutineBody in spaghetti style
+		# very, very spaghetti :(
+		# see kind (constructor, etc..) : set currentFnKind
+		# see return type : set currentType       AND   also initialize the subroutine symbol table
+		# see name : set currentName ( so that a downstream piece of code has this ready..
+		# see (  : get ready to process arg list by setting currentKind to argument
+		# see ) : set currentKind to 'local' AND  enter this function name into the symbol function table - so that the subroutineBody guy can insert a return if needed..
 		
 		self.rules['parameterList'] = [ '_params' , 2 ]
 		self.elements['parameterList'] = ['rule']
-		# does parameterList need to generate VM code or update the symbol table? No, according to me - all you'll be able to do is check the validity of the arguments
+		# does parameterList need to generate VM code or update the symbol table? Yes - coz the function needs to access these.. 
 		
 		self.rules['_params'] = [ '_param' , 1 , '_addlParam' , 3 ]
 		self.elements['_params'] = ['rule' , 'rule' ]
 		self.rules['_param'] = ['_type' , 1, '.*' , 1 ]
 		self.elements['_param'] = ['rule', 'identifier']
+		self.toDo['_param'] = [ -1 , "self.currentKind = '%'" , -1 , "self.symTab.Define( self.currentType, self.currentKind, '%')" ]
+		
 		self.rules['_addlParam' ] = [ ',' , 1 , '_type' , 1 , '.*' , 1]
 		self.elements['_addlParam' ] = [ 'symbol' , 'rule', 'identifier' ]
+		self.toDo['_addlParam'] = [ 0, 'n/a', -1 , "self.currentKind = '%'" , -1 , "self.symTab.Define( self.currentType, self.currentKind, '%')" ]
 		
 		
 		self.rules['subroutineBody'] = ['{' , 1 , 'varDec' , 3 , 'statements' , 1 , '}' , 1 ]
@@ -101,7 +111,8 @@ class Analyzer():
 		
 		self.rules['varDec'] = ['var' , 1, '_type' , 1, '.*' , 1 , '_addlVarDec' , 3 , ';' , 1 ]
 		self.elements['varDec'] = ['keyword' , 'rule' , 'identifier' , 'rule' , 'symbol' ]
-		self.toDo['varDec'] = [ -2, "self.nLocals = self.nLocals + 1", 0, 'n/a', 0, 'n/a', -3 , "self.nLocals = self.nLocals + numMatch", 0, 'n/a']
+		self.toDo['varDec'] = [ -2, "self.nLocals = self.nLocals + 1",  -1 , "self.currentType = '%'", 
+									0 ,	'symTab.Define(  self.currentType, self.currentKind, ', -3 , "self.nLocals = self.nLocals + numMatch", 0, 'n/a']
 
 
 		self.rules['statements'] = ['_statement' , 3 ]	# this was a curve ball - didn't realize they don't want <statement> ha!
@@ -110,7 +121,7 @@ class Analyzer():
 		self.elements['_statement'] = ['rule||rule||rule||rule||rule']
 		self.rules['letStatement'] = ['let' , 1 , '.*' , 1 , '_index' , 2 , '=' , 1 , 'expression' , 1 , ';' , 1 ]
 		self.elements['letStatement'] = ['keyword' , 'identifier', 'rule' , 'symbol' , 'rule', 'symbol' ]
-		self.toDo['letStatement'] = [0, 'n/a' , ]
+		# self.toDo['letStatement'] = [0, 'n/a' , ]
 		
 		
 		self.rules['_index'] = ['\[' , 1 , 'expression' , 1 , '\]' , 1 ]
@@ -190,6 +201,7 @@ class Analyzer():
 		self.vmgen = VMWriter()
 		self.symTab = SymbolTable()
 		self.currentKind = ''
+		self.currentFnKind = ''		# all helpers for the spaghetti code - the problem is that function definition contains the variable declarations - which also need kind :( (local)
 		self.currentType = ''
 		self.currentName = ''
 
@@ -385,7 +397,7 @@ class SymbolTable :
 		self.f_table = {}
 	
 	
-	def startSubroutine() :	# this guy just clears the sub symbol table
+	def startSubroutine( self ) :	# this guy just clears the sub symbol table
 		self.s_table = {}
 		self.s_index = 0
 	

@@ -57,7 +57,7 @@ class Analyzer():
 		self.rules['classVarDec'] = ['static|field' , 1 , '_type' , 1 , '.*' , 1 , '_addlVarDec', 3  , ';' , 1 ]	# note that static/field are "kind"
 		self.elements['classVarDec'] = ['keyword' , 'rule' , 'identifier' , 'rule', 'symbol']
 	# create a new entry in symbol table
-		# here, you also need feed-forward communiction (ain't this the definition of spaghetti code?)
+		# here, you also need feed-forward communication (ain't this the definition of spaghetti code?)
 		# because, classVarDec knows type, but _addlVarDec does not.. -- this necessitates a self.currentType that _addlVarDec can use.. what a shame:) but Elon Musk would like it..
 		# So, here, _type needs to set currentType and the classVarDec only needs to upate the symbol Table with the identifier
 		self.toDo['classVarDec'] = [ -1 , "self.currentKind = '%'" , 0 , 'n/a' , 0 , 'symTab.Define(  self.currentType, self.currentKind, ' , 0 , 'n/a', 0, 'n/a']
@@ -110,6 +110,9 @@ class Analyzer():
 		self.elements['_statement'] = ['rule||rule||rule||rule||rule']
 		self.rules['letStatement'] = ['let' , 1 , '.*' , 1 , '_index' , 2 , '=' , 1 , 'expression' , 1 , ';' , 1 ]
 		self.elements['letStatement'] = ['keyword' , 'identifier', 'rule' , 'symbol' , 'rule', 'symbol' ]
+		self.toDo['letStatement'] = [0, 'n/a' , ]
+		
+		
 		self.rules['_index'] = ['\[' , 1 , 'expression' , 1 , '\]' , 1 ]
 		self.elements['_index'] = [ 'symbol' , 'rule' , 'symbol' ]
 		self.rules['ifStatement'] = ['if' , 1 , '\(' , 1 , 'expression' , 1 , '\)' , 1 , '{' , 1 , 'statements' , 1 , '}' , 1 , '_elseBlock' , 2 ]
@@ -379,6 +382,7 @@ class SymbolTable :
 	def __init__( self ) :
 		self.c_table = {}
 		self.c_index = 0
+		self.f_table = {}
 	
 	
 	def startSubroutine() :	# this guy just clears the sub symbol table
@@ -390,9 +394,11 @@ class SymbolTable :
 		if( kind in ['local', 'argument'] ) :
 			self.s_table[ name ] = [ self.s_index, type, kind ]
 			self.s_index += 1
-		else :						# swapped these two around so that I could keep track of functions..
+		elif( kind in ['static', 'field' ] ) :						# swapped these two around so that I could keep track of functions..
 			self.c_table[ name ] = [ self.c_index, type, kind ]
 			self.c_index += 1
+		else :
+			self.f_table[ name ] = [type, kind]			# kind will be constructor|function|method and type will be return type - void or whatever
 		return ''
 	
 	def varCount( self,  kind ) :		# return int and takes STATIC, FIELD, ARG or VAR

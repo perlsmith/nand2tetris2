@@ -100,7 +100,7 @@ class Analyzer():
 		
 		self.rules['varDec'] = ['var' , 1, '_type' , 1, '.*' , 1 , '_addlVarDec' , 3 , ';' , 1 ]
 		self.elements['varDec'] = ['keyword' , 'rule' , 'identifier' , 'rule' , 'symbol' ]
-		self.toDo['varDec'] = [ -2, "self.nLocals = 1", 0, 'n/a', 0, 'n/a', -2 , "self.nLocals = self.nLocals + numMatch", 0, 'n/a']
+		self.toDo['varDec'] = [ -2, "self.nLocals = 1", 0, 'n/a', 0, 'n/a', -3 , "self.nLocals = self.nLocals + numMatch", 0, 'n/a']
 
 
 		self.rules['statements'] = ['_statement' , 3 ]	# this was a curve ball - didn't realize they don't want <statement> ha!
@@ -247,11 +247,11 @@ class Analyzer():
 								if( ruleName in self.toDo ) : 
 									if( -3 == self.toDo[ruleName][2*i] ) :
 										exec( 'capture = ' + self.toDo[ ruleName ][ 2*i + 1 ] )
-										VMbuf[ self.toDo[ ruleName ][ 2*i ] ] = capture
-										print( '... within  ' + ruleName + ' , ' + rTypes[j] + ' : adding ' + capture )
+										VMbuf[ self.toDo[ ruleName ][ 2*i ] ] = str(capture)
+										#print( '... within  ' + ruleName + ' , ' + rTypes[j] + ' : adding ' + capture )
 									elif ( not 'disregard' == self.toDo[ ruleName ][ 2*i + 1 ] ) :
-										print( '... within  ' + ruleName + ' , ' + rTypes[j] + ' : adding ' + subVM )
 										VMbuf[ self.toDo[ ruleName ][ 2*i ] ] = subVM
+										#print( '... within  ' + ruleName + ' , ' + rTypes[j] + ' : adding ' + subVM )
 								else :
 									VMbuf[ i ] = subVM
 								hits[ i ] = True
@@ -278,10 +278,10 @@ class Analyzer():
 												# pdb.set_trace()
 												# cmd = 'capture = self.' + self.toDo[ ruleName ][2*i + 1] + " '" + self.token + "' )"
 												exec( 'capture = self.' + self.toDo[ ruleName ][2*i + 1] + " '" + self.token + "' )"  )	# so, it's whatever you got, and then here we add token
-												VMbuf[ self.toDo[ ruleName ][ 2*i ] ] = capture # the order is also right 
+												VMbuf[ self.toDo[ ruleName ][ 2*i ] ] = str(capture) # the order is also right 
 																								# onus is now on encode_lingo
 																								# we need this form of indexing just to get the postfix thing right..
-										print( '... within  ' + ruleName + ' , ' + rTypes[j] + ' : adding (token match) .. ' + capture )
+										#print( '... within  ' + ruleName + ' , ' + rTypes[j] + ' : adding (token match) .. ' + capture )
 								else :		# went weeks without this :)
 									self.tokenStack = [self.nextline] + self.tokenStack
 					j = j + 1

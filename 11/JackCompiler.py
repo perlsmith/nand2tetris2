@@ -366,7 +366,7 @@ class Analyzer():
 	# back-tracking, then you don't want to read from file..
 		if( len( self.tokenStack ) ) :
 			self.nextline = self.tokenStack[0]
-			match = re.match( "^\s*<(\S+)>\s*(\S+)" , self.nextline )
+			match = re.match( r"^\s*<(\S+)>\s*(\S.*?)\s*</\1" , self.nextline )
 			if( match ) :
 				self.tokenName = match.group(1)
 				self.token = match.group(2)
@@ -383,7 +383,7 @@ class Analyzer():
 			else:
 				if( re.match( '<\/?tokens>' , self.nextline ) ) :
 					self.nextline = self.instream.readline()
-				match = re.match( "^\s*<(\S+)>\s*(\S+)" , self.nextline )
+				match = re.match( r"^\s*<(\S+)>\s*(\S.*?)\s*</\1" , self.nextline )
 				if( match ) :
 					self.tokenName = match.group(1)
 					self.token = match.group(2)
@@ -484,7 +484,8 @@ class VMWriter :
 		return VMcmd
 		
 	def createString( self, string ) :
-		VMcmd = "call String.new 1\n"	# remember nArgs - and the fact that String is a class!
+		VMcmd = "push constant " + str( len( string ) ) + "\n"
+		VMcmd += "call String.new 1\n"	# remember nArgs - and the fact that String is a class!
 		for char in string :
 			VMcmd = VMcmd + "push " + str(ord( char )) + "\n"
 			VMcmd = VMcmd + "call String.appendChar 2\n"

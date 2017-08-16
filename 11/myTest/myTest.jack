@@ -1,0 +1,17 @@
+class Square {
+
+   field int size; // length of this square, in pixels
+   field Point x,y;
+
+    /** Increments the square size by 2 pixels. */
+   method void incSize( int byHowMuch ) {
+//	 var String x;  // served it's purpose ,y;
+	 var int a,b;  // served it's purpose
+   
+//     let x = "abc efgh";
+     let size[1] = size + 2 + a + byHowMuch;
+	 return this;
+
+   }
+ 
+ }

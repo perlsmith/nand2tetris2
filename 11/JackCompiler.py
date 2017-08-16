@@ -97,11 +97,11 @@ class Analyzer():
 		self.elements['_params'] = ['rule' , 'rule' ]
 		self.rules['_param'] = ['_type' , 1, '.*' , 1 ]
 		self.elements['_param'] = ['rule', 'identifier']
-		self.toDo['_param'] = [ -1 , "self.currentKind = '%'" , -1 , "self.symTab.Define( self.currentType, self.currentKind, '%')" ]
+		self.toDo['_param'] = [ -1 , "self.currentType = '%'" , -1 , "self.symTab.Define( self.currentType, self.currentKind, '%')" ]
 		
 		self.rules['_addlParam' ] = [ ',' , 1 , '_type' , 1 , '.*' , 1]
 		self.elements['_addlParam' ] = [ 'symbol' , 'rule', 'identifier' ]
-		self.toDo['_addlParam'] = [ 0, 'n/a', -1 , "self.currentKind = '%'" , -1 , "self.symTab.Define( self.currentType, self.currentKind, '%')" ]
+		self.toDo['_addlParam'] = [ 0, 'n/a', -1 , "self.currentType = '%'" , -1 , "self.symTab.Define( self.currentType, self.currentKind, '%')" ]
 		
 		
 		self.rules['subroutineBody'] = ['{' , 1 , 'varDec' , 3 , 'statements' , 1 , '}' , 1 ]
@@ -121,7 +121,8 @@ class Analyzer():
 		self.elements['_statement'] = ['rule||rule||rule||rule||rule']
 		self.rules['letStatement'] = ['let' , 1 , '.*' , 1 , '_index' , 2 , '=' , 1 , 'expression' , 1 , ';' , 1 ]
 		self.elements['letStatement'] = ['keyword' , 'identifier', 'rule' , 'symbol' , 'rule', 'symbol' ]
-		self.toDo['letStatement'] = [0, 'n/a' , 1, "self.vmgen.writePushPop( 'pop' , self.symTab.seg_ind( '%' ) )" , 0, 'n/a', 0, 'n/a', 0, 'dump', 0, 'n/a'  ]
+		self.toDo['letStatement'] = [0, 'n/a' , -1, "self.currentName = '%'\n" ,
+										-2, "self.a_index = str(%)", 1, "self.vmgen.writeLHS( self.symTab.seg_ind( self.currentName), self.a_index )", 0, 'dump', 0, 'n/a'  ]
 		# this stuff is magic - if the name has a . in it, then you use the this pointer to access the field..
 		# on the LHS, you need to pop - in postfix sense - that is, you first build up the expression given by the RHS using a series
 		# of push commands, and function calls, and then you pop into the segment/index specified by the LHS
@@ -186,6 +187,7 @@ class Analyzer():
 		self.elements['_addlExpr'] = ['symbol' , 'rule']
 		self.rules['_keywordConstant' ] = ['true|false|null|this', 1]
 		self.elements['_keywordConstant'] = ['keyword']
+		
 		self.rules['_varName'] = ['.*', 1]
 		self.elements['_varName'] = ['identifier']
 		self.toDo['_varName'] = [ 0, "self.vmgen.writePushPop( 'push' , self.symTab.seg_ind('%') )"]
@@ -209,6 +211,7 @@ class Analyzer():
 		self.currentFnKind = ''		# all helpers for the spaghetti code - the problem is that function definition contains the variable declarations - which also need kind :( (local)
 		self.currentType = ''
 		self.currentName = ''
+		self.a_index = ''
 
 	def Write( self, buffer ) :		# buffer could be very big - so might need a better way to deal with this
 		self.outstream.write( buffer )
@@ -224,6 +227,7 @@ class Analyzer():
 	#					-- if you see || then you split on || and process the resulting list in OR fashion - first one that hits terminates
 	# also, hunger can only get elevated when traversing a rule laterally -- going by LL1..
 	def analyze( self, ruleName, hunger ) :		# hunger is the same as 1,2,3 for 1, ?, *
+		# print ruleName + ' ' + str(hunger) + "\n"
 		# returns a buffer containing tokens satisfying rule, or ''. If return is '', then 
 		# decide if input is bad based on hunger and depth
 		# pdb.set_trace()
@@ -242,6 +246,7 @@ class Analyzer():
 		howMany = 0;
 		hits = [False] * numR
 		capture = ''	# intended for use by exec
+		self.a_index = ''	# supporting spaghetti
 
 		while( appetite ) :
 			VMbuf = [''] * numR
@@ -275,6 +280,9 @@ class Analyzer():
 										exec( 'capture = ' + self.toDo[ ruleName ][ 2*i + 1 ] )
 										VMbuf[ i ] = str(capture)
 										#print( '... within  ' + ruleName + ' , ' + rTypes[j] + ' : adding ' + capture )
+									elif( -1 == self.toDo[ruleName][2*i] ) :		# started with classVarDec :) -- here, no need to do a capture
+										cmd = re.sub( '%' , self.token, self.toDo[ ruleName ][ 2*i + 1 ] )
+										exec( cmd  )
 									elif ( not 'disregard' == self.toDo[ ruleName ][ 2*i + 1 ] ) :
 										VMbuf[ self.toDo[ ruleName ][ 2*i ] ] = subVM
 										#print( '... within  ' + ruleName + ' , ' + rTypes[j] + ' : adding ' + subVM )
@@ -306,6 +314,7 @@ class Analyzer():
 												# exec( 'capture = self.' + self.toDo[ ruleName ][2*i + 1] + " '" + self.token + "' )"  )	# so, it's whatever you got, and then here we add token
 												## had to retire the above way because I couldn't handle fn1( fn2 ( self.token ) ) with that approach - easier to substitute % with.. and call
 												cmd = 'capture = ' + re.sub( '%', self.token, self.toDo[ ruleName ][ 2*i + 1 ] )
+												print cmd + "\n"
 												exec( cmd )
 												VMbuf[ self.toDo[ ruleName ][ 2*i ] ] = str(capture) # the order is also right 
 																								# onus is now on encode_lingo
@@ -408,6 +417,7 @@ class SymbolTable :
 	
 	
 	def startSubroutine( self ) :	# this guy just clears the sub symbol table
+		# print "Doing fn var table init\n"
 		self.l_table = {}	# local segment
 		self.l_index = 0
 		self.a_table = {}	# argument segment
@@ -464,10 +474,9 @@ class SymbolTable :
 		elif( name in self.t_table ) :
 			return 'this ' + str( self.t_table[ name ][ 0 ] )
 		else :			# unknown variable name
-			return -1
+			return name + ' ' + str(-1)
 			
-	def symbolSub( self, name ) :		# this is the magic one - the one that makes the whole compilation work..
-		return 'dummy for now'
+
 
 			
 class VMWriter :
@@ -502,7 +511,8 @@ class VMWriter :
 		return 'pop ' + segment + str( index )  + "\n" 
 		
 	def writePushPop( self, cmd, seg_ind ) :
-		return cmd + ' ' + seg_ind
+		# print str(seg_ind) + "\n"
+		return cmd + ' ' + seg_ind + "\n"
 	
 	def writeArithmetic( self, cmd ) :
 		VMcmd = cmd
@@ -550,6 +560,25 @@ class VMWriter :
 	
 	def writeReturn( ) :
 		return "return\n" 
+		
+	def writeArrayElem( self, lhsRHZB, seg_ind, index ) :
+		VMcmd = self.writePushPop( 'push' , seg_ind )
+		VMcmd += 'push constant ' + str( index ) + "\n"
+		VMcmd += "add\n"
+		VMcmd += "pop pointer 1\n"
+		if lhsRHZB :
+			VMcmd += "pop that 0\n"
+		else :			# meaning what's in the mem gets used, not updated..
+			VMcmd += "push that 0\n"
+		return VMcmd
+			
+	def writeLHS( self, seg_ind, a_index ) :
+		if not '' == a_index :		# meaning this is an array
+			VMcmd = self.writeArrayElem( True, seg_ind, a_index )
+		else :
+			VMcmd = 'pop ' + seg_ind + "\n"
+		return VMcmd
+		
 		
 
 			

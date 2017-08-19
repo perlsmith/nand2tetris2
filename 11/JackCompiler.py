@@ -146,6 +146,8 @@ class Analyzer():
 		self.elements['doStatement'] = ['keyword' , 'rule' , 'symbol' ]
 		self.rules['returnStatement'] = ['return' , 1 , 'expression' , 2 , ';' , 1 ]
 		self.elements['returnStatement'] = ['keyword' , 'rule' , 'symbol' ]
+		self.toDo['returnStatement'] = [ 0, 'n/a', -3 , "subVM = self.vmgen.writeReturn( subVM )", 0, 'n/a']
+		
 		self.rules['expression'] = ['term' , 1 , '_subExp' , 3 ]
 		self.elements['expression'] = ['rule' , 'rule' ]
 		# expression doesn't need to do anything smart - just dump VM commands from term and _subExp
@@ -564,8 +566,11 @@ class VMWriter :
 	def writeFunction( name, nLocals ) :
 		return 'function ' + name + ' ' + str( nLocals ) + "\n" 
 	
-	def writeReturn( name ) :
-		pass
+	def writeReturn( self, what ) :
+		if ( 'void' == what ) :
+			return  "push constant 0\nreturn\n"
+		else :
+			return what + "\nreturn\n"
 		
 	def writeArrayElem( self, lhsRHZB ) :
 		VMcmd = "add\n"

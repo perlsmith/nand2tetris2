@@ -2,6 +2,9 @@
 
 # use cat file.xml | perl -p -e 's/\r\n/\n/g;' >> dest.xml ... to get rid of the DOS/UNIX issues
 
+# note, this impl assumes constructor return type is right and that the constructor returns "this". It only adds a return 0
+# for the case of void. http://www.shimonschocken.com/nand2tetris/lectures/PDF/lecture%2009%20high%20level%20language.pdf (slide 14)
+
 # a good idea to read comments in the SyntaxAnalyzer (project 10) first if looking at this file for the first time
 
 # Shimon suggested having a Tokenizer here. why? That can be a separate module that generates tokens from
@@ -41,7 +44,7 @@ class Analyzer():
 	# the only motivation for this is to be able to fold and manage the code easily :)
 	# toDo contains command - it could probably just be a list, but is a dict for now
 	# the number is (when positive) the position of the final return array that the result of the exce goes in..
-	# when negative, it's a command code : -2 means just execute literally. -1 means substitute % with self.token. In these two cases, analyze doesn't add the self., so you have to :) spaghetti :)
+	# when negative, it's a command code : -2 means just execute literally. -1 means substitute % with self.token. 
 	# spaghetti coded implementation because orthogonality is very poor - this section needs to know about code in the analyze section..
 	# -3 is only applicable for the case of the sought token being a non-terminal rule..
 
@@ -108,6 +111,7 @@ class Analyzer():
 		self.elements['subroutineBody'] = ['symbol' , 'rule', 'rule', 'symbol' ]
 		self.toDo['subroutineBody'] = [ -2 , 'self.nLocals = 0' , -3, "self.vmgen.construct( self.currentFnKind, self.currentName, self.nLocals)", 2, 'n/a' , 0, 'n/a' ]
 		# here, when varDec is done, it returns numMatch - which you should now use to enter "function currentName nLocals" correctly..
+		# pending - use the final } to put out a return 0 in the case of a void or a constructor (where you have to return this -- if you ask me, the syntax should require it)
 		
 		self.rules['varDec'] = ['var' , 1, '_type' , 1, '.*' , 1 , '_addlVarDec' , 3 , ';' , 1 ]
 		self.elements['varDec'] = ['keyword' , 'rule' , 'identifier' , 'rule' , 'symbol' ]
@@ -122,7 +126,7 @@ class Analyzer():
 		self.rules['letStatement'] = ['let' , 1 , '.*' , 1 , '_index' , 2 , '=' , 1 , 'expression' , 1 , ';' , 1 ]
 		self.elements['letStatement'] = ['keyword' , 'identifier', 'rule' , 'symbol' , 'rule', 'symbol' ]
 		self.toDo['letStatement'] = [0, 'n/a' , -1, "self.currentName = '%'\n" ,
-										-2, "self.a_index = str(%)", 1, "self.vmgen.writeLHS( self.symTab.seg_ind( self.currentName), self.a_index )", 0, 'dump', 0, 'n/a'  ]
+										-1, "self.a_index=subVM", 1, "self.vmgen.writeLHS( self.symTab.seg_ind( self.currentName), self.a_index )", 0, 'dump', 0, 'n/a'  ]
 		# this stuff is magic - if the name has a . in it, then you use the this pointer to access the field..
 		# on the LHS, you need to pop - in postfix sense - that is, you first build up the expression given by the RHS using a series
 		# of push commands, and function calls, and then you pop into the segment/index specified by the LHS
@@ -131,6 +135,7 @@ class Analyzer():
 		
 		self.rules['_index'] = ['\[' , 1 , 'expression' , 1 , '\]' , 1 ]
 		self.elements['_index'] = [ 'symbol' , 'rule' , 'symbol' ]
+		
 		self.rules['ifStatement'] = ['if' , 1 , '\(' , 1 , 'expression' , 1 , '\)' , 1 , '{' , 1 , 'statements' , 1 , '}' , 1 , '_elseBlock' , 2 ]
 		self.elements['ifStatement'] = ['keyword' , 'symbol', 'rule', 'symbol', 'symbol', 'rule' , 'symbol' , 'rule' ]
 		self.rules['_elseBlock' ] = ['else' , 1 , '{' , 1 , 'statements' , 1 , '}' , 1 ]
@@ -246,7 +251,7 @@ class Analyzer():
 		howMany = 0;
 		hits = [False] * numR
 		capture = ''	# intended for use by exec
-		self.a_index = ''	# supporting spaghetti
+		self.a_index = ''	# supporting spaghetti --> another routine buried somewhere depends on this being reset :)
 
 		while( appetite ) :
 			VMbuf = [''] * numR
@@ -486,15 +491,16 @@ class VMWriter :
 	def __init__( self ) :
 		return None
 		
+	def return( self, name )
+		# if you detect that kind is constructor or type 
+	
 	def construct( self , kind, name, nLocals ) :
+		VMcmd = "function " + name + ' ' + str(nLocals) + "\n"
 		if 'constructor' == kind :
-			VMcmd = "function " + name + ' ' + str(nLocals) + "\n"
 			VMcmd += "push constant " + str(nLocals) + "\n"
 			VMcmd += "call Memory.alloc 1\n"
 			VMcmd += "pop pointer 0\n" 		# sets the 'this' segment
-			return VMcmd
-		else :
-			return ''
+		return VMcmd
 		
 	def createString( self, string ) :
 		VMcmd = "push constant " + str( len( string ) ) + "\n"
@@ -561,11 +567,11 @@ class VMWriter :
 	def writeReturn( ) :
 		return "return\n" 
 		
-	def writeArrayElem( self, lhsRHZB, seg_ind, index ) :
+	def writeArrayElem( self, lhsRHZB, seg_ind, VM_index ) :
 		VMcmd = self.writePushPop( 'push' , seg_ind )
-		VMcmd += 'push constant ' + str( index ) + "\n"
+		VMcmd += VM_index
 		VMcmd += "add\n"
-		VMcmd += "pop pointer 1\n"
+		VMcmd += "pop pointer 1		// setting 'that'\n"
 		if lhsRHZB :
 			VMcmd += "pop that 0\n"
 		else :			# meaning what's in the mem gets used, not updated..

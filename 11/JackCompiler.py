@@ -197,6 +197,7 @@ class Analyzer():
 		self.elements['_addlExpr'] = ['symbol' , 'rule']
 		self.rules['_keywordConstant' ] = ['true|false|null|this', 1]
 		self.elements['_keywordConstant'] = ['keyword']
+		self.toDo['_keywordConstant'] = [ 0, "self.vmgen.writeConst('%')" ]
 		
 		self.rules['_varName'] = ['.*', 1]
 		self.elements['_varName'] = ['identifier']
@@ -589,6 +590,14 @@ class VMWriter :
 		else :
 			VMcmd = 'pop ' + seg_ind + "\n"
 		return VMcmd
+		
+	def writeConst( self, value ) :
+		if( 'this' == value ) :
+			return "push pointer 0\n"
+		elif( 'true' == value ) :
+			return "push constant 1\n" + "neg\n"
+		elif( value in ['none', 'false'] ) :
+			return "push constant 0\n"
 		
 		
 

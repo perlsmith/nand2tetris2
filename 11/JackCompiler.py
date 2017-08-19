@@ -76,9 +76,9 @@ class Analyzer():
 		
 		self.rules['subroutineDec'] = ['constructor|function|method' , 1 , 'void||_type' , 1 , '.*' , 1 , '\(', 1, 'parameterList' , 1 , '\)' , 1, 'subroutineBody' , 1]
 		self.elements['subroutineDec'] = ['keyword' , 'keyword||rule' , 'identifier' , 'symbol' , 'rule', 'symbol', 'rule' ]
-		self.toDo['subroutineDec'] = [ -1 , "self.currentFnKind = '%'" , -1 , "self.currentType = '%'\nself.symTab.startSubroutine()" , 
+		self.toDo['subroutineDec'] = [ -1 , "self.currentFnKind = '%'" , -1 , "self.currentFnType = '%'\nself.symTab.startSubroutine()" , 
 										-1, "self.currentName = '%'",  -2 , "self.currentKind = 'argument'",  0 , 'n/a' ,
-										-2 , "self.currentKind = 'local'\nself.symTab.Define( self.currentType, self.currentFnKind, 'function.' + self.currentName)" , 0 , 'n/a' ]
+										-2 , "self.currentKind = 'local'\nself.symTab.Define( self.currentFnType, self.currentFnKind, 'function.' + self.currentName)" , 0 , 'n/a' ]
 		# what this means is that you first look for keyword : void - if you see void, then your put down <keyword> void </keyword> else
 		# you look at type - which is again looking for keyword : int|char|boolean .... you get the idea..
 		# in the case of a void, you have to return 0... that's the VM mapping..
@@ -109,7 +109,8 @@ class Analyzer():
 		
 		self.rules['subroutineBody'] = ['{' , 1 , 'varDec' , 3 , 'statements' , 1 , '}' , 1 ]
 		self.elements['subroutineBody'] = ['symbol' , 'rule', 'rule', 'symbol' ]
-		self.toDo['subroutineBody'] = [ -2 , 'self.nLocals = 0' , -3, "self.vmgen.construct( self.currentFnKind, self.currentName, self.nLocals)", 2, 'n/a' , 0, 'n/a' ]
+		self.toDo['subroutineBody'] = [ -2 , 'self.nLocals = 0' , -3, "self.vmgen.construct( self.currentFnKind, self.currentName, self.nLocals)", 
+										0, 'n/a' , 1, "self.vmgen.writeReturn( self.currentFnType, True )" ]
 		# here, when varDec is done, it returns numMatch - which you should now use to enter "function currentName nLocals" correctly..
 		# pending - use the final } to put out a return 0 in the case of a void or a constructor (where you have to return this -- if you ask me, the syntax should require it)
 		
@@ -144,9 +145,10 @@ class Analyzer():
 		self.elements['whileStatement'] = ['keyword' , 'symbol' , 'rule', 'symbol' , 'symbol' , 'rule' , 'symbol' ]
 		self.rules['doStatement'] = ['do' , 1 , '_subroutineCall' , 1 , ';' , 1 ]
 		self.elements['doStatement'] = ['keyword' , 'rule' , 'symbol' ]
+
 		self.rules['returnStatement'] = ['return' , 1 , 'expression' , 2 , ';' , 1 ]
 		self.elements['returnStatement'] = ['keyword' , 'rule' , 'symbol' ]
-		self.toDo['returnStatement'] = [ 0, 'n/a', -3 , "subVM = self.vmgen.writeReturn( subVM )", 0, 'n/a']
+		self.toDo['returnStatement'] = [ 0, 'n/a', -3 , "subVM = self.vmgen.writeReturn( subVM, False )", 0, 'n/a']
 		
 		self.rules['expression'] = ['term' , 1 , '_subExp' , 3 ]
 		self.elements['expression'] = ['rule' , 'rule' ]
@@ -567,11 +569,13 @@ class VMWriter :
 	def writeFunction( name, nLocals ) :
 		return 'function ' + name + ' ' + str( nLocals ) + "\n" 
 	
-	def writeReturn( self, what ) :
-		if ( 'void' == what ) :
+	def writeReturn( self, what, isInlineCmd ) :
+		if ( 'void' == what and isInlineCmd) :
 			return  "push constant 0\nreturn\n"
-		else :
+		elif( not isInlineCmd ) :		# essentially supporting spaghetting code
 			return what + "\nreturn\n"
+		else :
+			return ''
 		
 	def writeArrayElem( self, lhsRHZB ) :
 		VMcmd = "add\n"
@@ -596,7 +600,7 @@ class VMWriter :
 			return "push pointer 0\n"
 		elif( 'true' == value ) :
 			return "push constant 1\n" + "neg\n"
-		elif( value in ['none', 'false'] ) :
+		elif( value in ['null', 'false'] ) :
 			return "push constant 0\n"
 		
 		

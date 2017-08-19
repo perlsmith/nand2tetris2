@@ -167,6 +167,9 @@ class Analyzer():
 		
 		self.rules['_arrayElem'] = ['.*' , 1 , '\[' , 1 , 'expression' , 1 , '\]' , 1 ]
 		self.elements['_arrayElem'] = ['identifier' , 'symbol', 'rule' , 'symbol' ]
+		self.toDo['_arrayElem'] = [0, "self.vmgen.writePushPop( 'push' , self.symTab.seg_ind('%') )", 0, 'n/a', 
+								-3, "subVM + self.vmgen.writeArrayElem( False )" , 0, 'n/a']
+		
 		self.rules['_paranthExp'] = ['\(' , 1 , 'expression' , 1, '\)' , 1]
 		self.elements['_paranthExp'] = ['symbol' , 'rule' , 'symbol' ]
 		self.toDo['_paranthExp'] = [ 1 , 'n/a' , 0 , 'dump' , 2, 'n/a' ]
@@ -491,9 +494,6 @@ class VMWriter :
 	def __init__( self ) :
 		return None
 		
-	def return( self, name )
-		# if you detect that kind is constructor or type 
-	
 	def construct( self , kind, name, nLocals ) :
 		VMcmd = "function " + name + ' ' + str(nLocals) + "\n"
 		if 'constructor' == kind :
@@ -564,13 +564,11 @@ class VMWriter :
 	def writeFunction( name, nLocals ) :
 		return 'function ' + name + ' ' + str( nLocals ) + "\n" 
 	
-	def writeReturn( ) :
-		return "return\n" 
+	def writeReturn( name ) :
+		pass
 		
-	def writeArrayElem( self, lhsRHZB, seg_ind, VM_index ) :
-		VMcmd = self.writePushPop( 'push' , seg_ind )
-		VMcmd += VM_index
-		VMcmd += "add\n"
+	def writeArrayElem( self, lhsRHZB ) :
+		VMcmd = "add\n"
 		VMcmd += "pop pointer 1		// setting 'that'\n"
 		if lhsRHZB :
 			VMcmd += "pop that 0\n"
@@ -580,7 +578,9 @@ class VMWriter :
 			
 	def writeLHS( self, seg_ind, a_index ) :
 		if not '' == a_index :		# meaning this is an array
-			VMcmd = self.writeArrayElem( True, seg_ind, a_index )
+			VMcmd = self.writePushPop( 'push' , seg_ind )
+			VMcmd += a_index
+			VMcmd += self.writeArrayElem( True )
 		else :
 			VMcmd = 'pop ' + seg_ind + "\n"
 		return VMcmd

@@ -476,10 +476,14 @@ class SymbolTable :
 			return 'NONE'
 			
 	def typeOf( self, name ) :
-		if( self.s_table[ name ] ) :
+		if( name in self.s_table ) :
 			return self.s_table[ name ][ 1 ]
-		elif( self.c_table[ name ] ) :
-			return self.c_table[ name ][ 1 ]
+		elif( name in self.t_table ) :
+			return self.t_table[ name ][ 1 ]
+		elif( name in self.a_table ) :
+			return self.a_table[ name ][ 1 ]
+		elif( name in self.l_table ) :
+			return self.l_table[ name ][ 1 ]
 		else :
 			return 'NONE'
 	
@@ -577,6 +581,7 @@ class VMWriter :
 		# if not, then it's is library function call.. else, you have to call type.identifier2
 		# check if you have a class function call : 
 		match = re.match( r"<identifier>\s*(\S+)\s*</identifier>\s*<symbol>\s*\.\s*</symbol>\s*<identifier>\s*(\S+)\s*</identifier>" , tokens, flags=re.MULTILINE|re.DOTALL )
+		VMcmd = ''
 		if match : 
 			id1 = match.group(1)
 			id2 = match.group(2)
@@ -599,7 +604,7 @@ class VMWriter :
 		argList = args.split( ',' )
 		nArgs = len( argList )
 		callCmd += str( nArgs )
-		VMcmd += exprList + callCmd
+		VMcmd += "\n".join(exprList) + callCmd
 		return VMcmd
 
 	

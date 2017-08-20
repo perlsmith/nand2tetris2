@@ -110,7 +110,7 @@ class Analyzer():
 		self.rules['subroutineBody'] = ['{' , 1 , 'varDec' , 3 , 'statements' , 1 , '}' , 1 ]
 		self.elements['subroutineBody'] = ['symbol' , 'rule', 'rule', 'symbol' ]
 		self.toDo['subroutineBody'] = [ -2 , 'self.nLocals = 0' , -3, "self.vmgen.construct( self.currentFnKind, self.currentName, self.nLocals)", 
-										0, 'n/a' , 1, "self.vmgen.writeReturn( self.currentFnType, True )" ]
+										2, 'dump' , 3, "self.vmgen.writeReturn( self.currentFnType, True )" ]
 		# here, when varDec is done, it returns numMatch - which you should now use to enter "function currentName nLocals" correctly..
 		# pending - use the final } to put out a return 0 in the case of a void or a constructor (where you have to return this -- if you ask me, the syntax should require it)
 		

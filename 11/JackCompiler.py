@@ -139,7 +139,12 @@ class Analyzer():
 		
 		self.rules['ifStatement'] = ['if' , 1 , '\(' , 1 , 'expression' , 1 , '\)' , 1 , '{' , 1 , 'statements' , 1 , '}' , 1 , '_elseBlock' , 2 ]
 		self.elements['ifStatement'] = ['keyword' , 'symbol', 'rule', 'symbol', 'symbol', 'rule' , 'symbol' , 'rule' ]
-		self.toDo['ifStatement'] = []
+		self.toDo['ifStatement'] = [-2, 'self.if_lbl_id += 1', -2, 'VMbuf[5] = "label LBL_IF_" + str(self.if_lbl_id+1)', 
+										0, 'dump', -2, "VMbuf[1] = 'neg'\nVMbuf[2] = 'if-goto LBL_IF_ ' + str(self.if_lbl_id)",
+										0, 'n/a', 3, 'dump', 
+										-2, "VMbuf[4] = 'goto LBL_IF_'+str(self.if_lbl_id+1)\nVMbuf[5] = 'label LBL_IF_' + str(self.if_lbl_id+1) \nself.if_lbl_id += 1",
+										6, 'dump']
+		# the implementation uses the counter if_lbl_id and increments it twice as it is used
 		
 		self.rules['_elseBlock' ] = ['else' , 1 , '{' , 1 , 'statements' , 1 , '}' , 1 ]
 		self.elements['_elseBlock' ] = [ 'keyword', 'symbol', 'rule' , 'symbol' ]
@@ -183,7 +188,7 @@ class Analyzer():
 		
 		self.rules['_unOpTerm' ] = ['[-~]' , 1 , 'term' , 1 ]
 		self.elements['_unOpTerm' ] = ['symbol', 'rule']	# this is another special case - a CSV -- you put the rule-entry - in this case, <unaryOp>
-		self.toDo['_unOpTerm'] = [ 1 , "self.vmgen.arithLogGen('%')" , 0 , "self.vmgen.writePushPop( 'push', self.symTab.seg_ind('%') )" ]
+		self.toDo['_unOpTerm'] = [ 1 , "self.vmgen.writeUnary('%')" , 0 , "self.vmgen.writePushPop( 'push', self.symTab.seg_ind('%') )" ]
 		
 		self.rules['_subroutineCall' ] = [ '.*' , 1 , '_cmCallMarker' , 2 , '\(' , 1, 'expressionList' , 1 , '\)' , 1 ]
 		self.elements['_subroutineCall' ] = [ 'identifier' , 'rule' , 'symbol' , 'rule' , 'symbol' ]

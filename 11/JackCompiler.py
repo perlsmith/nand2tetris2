@@ -145,12 +145,19 @@ class Analyzer():
 										-2, "VMbuf[4] = 'goto LBL_IF_'+str(self.if_lbl_id+1)\nVMbuf[5] = 'label LBL_IF_' + str(self.if_lbl_id) \nself.if_lbl_id += 1",
 										3, 'dump']
 		# the implementation uses the counter if_lbl_id and increments it twice as it is used
+		# it's spaghetti code - the analyze function in this class maintains a VMbuf array - and this array contains python code to
+		# populate that array as it traverses this one and does its bidding
+		# to understand above code, you have to look at the if statements in analyze for the decoding of the the -3, -2, etc.. 
 		
 		self.rules['_elseBlock' ] = ['else' , 1 , '{' , 1 , 'statements' , 1 , '}' , 1 ]
 		self.elements['_elseBlock' ] = [ 'keyword', 'symbol', 'rule' , 'symbol' ]
 		
 		self.rules['whileStatement'] = ['while', 1 , '\(' , 1, 'expression' , 1 , '\)' , 1 , '{' , 1 , 'statements' , 1 , '}' , 1 ]
 		self.elements['whileStatement'] = ['keyword' , 'symbol' , 'rule', 'symbol' , 'symbol' , 'rule' , 'symbol' ]
+		self.toDo['whileStatement'] = [ -2, "self.if_lbl_id += 1\nVMbuf[0] = 'label LBL_IF_'+str(self.if_lbl_id)",
+										-2, "VMbuf[4] = 'goto LBL_IF_'+str(self.if_lbl_id)" , 1, 'dump',
+										-2, "VMbuf[2] = 'if-goto LBL_IF_' + str(self.if_lbl_id+1)", 0, 'n/a', 3, 'dump',
+										-2, "VMbuf[5] = 'label LBL_IF_' + str(self.if_lbl_id+1) \nself.if_lbl_id += 1"]
 		
 		self.rules['doStatement'] = ['do' , 1 , '_subroutineCall' , 1 , ';' , 1 ]
 		self.elements['doStatement'] = ['keyword' , 'rule' , 'symbol' ]

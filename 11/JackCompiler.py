@@ -176,7 +176,7 @@ class Analyzer():
 		self.toDo['_subExp'] = [1, "self.vmgen.writeArithmetic( '%' )", 0 , 'n/a']
 		
 		self.rules['term'] = ['_subroutineCall||_arrayElem||integerConstant||stringConstant||_keywordConstant||_varName||_paranthExp||_unOpTerm' , 1]
-		self.elements['term'] = ['rule||rule||rule||rule||rule||rule||rule']	
+		self.elements['term'] = ['rule||rule||rule||rule||rule||rule||rule||rule']	
 		self.rules['integerConstant'] = ['.*' , 1]
 		self.elements['integerConstant'] = ['integerConstant']
 		self.toDo['integerConstant'] = [ 0 , "self.vmgen.writePush( 'constant ' , '%' )" ]

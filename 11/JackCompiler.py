@@ -139,15 +139,16 @@ class Analyzer():
 		
 		self.rules['ifStatement'] = ['if' , 1 , '\(' , 1 , 'expression' , 1 , '\)' , 1 , '{' , 1 , 'statements' , 1 , '}' , 1 , '_elseBlock' , 2 ]
 		self.elements['ifStatement'] = ['keyword' , 'symbol', 'rule', 'symbol', 'symbol', 'rule' , 'symbol' , 'rule' ]
-		self.toDo['ifStatement'] = [-2, 'self.if_lbl_id += 1', -2, 'VMbuf[5] = "label LBL_IF_" + str(self.if_lbl_id+1)', 
-										0, 'dump', -2, "VMbuf[1] = 'neg'\nVMbuf[2] = 'if-goto LBL_IF_ ' + str(self.if_lbl_id)",
-										0, 'n/a', 3, 'dump', 
-										-2, "VMbuf[4] = 'goto LBL_IF_'+str(self.if_lbl_id+1)\nVMbuf[5] = 'label LBL_IF_' + str(self.if_lbl_id+1) \nself.if_lbl_id += 1",
-										6, 'dump']
+		self.toDo['ifStatement'] = [-2, 'self.if_lbl_id += 1', -2, 'VMbuf[7] = "label LBL_IF_" + str(self.if_lbl_id+1)', 
+										0, 'dump', -2, "VMbuf[1] = 'not'\nVMbuf[2] = 'if-goto LBL_IF_' + str(self.if_lbl_id)",
+										0, 'n/a', 6, 'dump', 
+										-2, "VMbuf[4] = 'goto LBL_IF_'+str(self.if_lbl_id+1)\nVMbuf[5] = 'label LBL_IF_' + str(self.if_lbl_id) \nself.if_lbl_id += 1",
+										3, 'dump']
 		# the implementation uses the counter if_lbl_id and increments it twice as it is used
 		
 		self.rules['_elseBlock' ] = ['else' , 1 , '{' , 1 , 'statements' , 1 , '}' , 1 ]
 		self.elements['_elseBlock' ] = [ 'keyword', 'symbol', 'rule' , 'symbol' ]
+		
 		self.rules['whileStatement'] = ['while', 1 , '\(' , 1, 'expression' , 1 , '\)' , 1 , '{' , 1 , 'statements' , 1 , '}' , 1 ]
 		self.elements['whileStatement'] = ['keyword' , 'symbol' , 'rule', 'symbol' , 'symbol' , 'rule' , 'symbol' ]
 		

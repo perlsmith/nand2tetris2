@@ -184,10 +184,16 @@ class Analyzer():
 		
 		self.rules['_subroutineCall' ] = [ '.*' , 1 , '_cmCallMarker' , 2 , '\(' , 1, 'expressionList' , 1 , '\)' , 1 ]
 		self.elements['_subroutineCall' ] = [ 'identifier' , 'rule' , 'symbol' , 'rule' , 'symbol' ]
-		# here's where you have to pull the rabbit out of the hat -- for a constructor, you don't care. But, for a function, if return type is void,
-		# then you have to insert a return 0.. (push constant 0, return )
+		# here's where you have to pull the rabbit out of the hat -- for a constructor, you don't care. 
 		# if it's a method, then you have to first of all add 1 to the nArgs and set ARG #0 to the address of the object (this)
-		# and then you have to also check for void and insert return 0 if necessary. 
+		# call fnName nArgs
+		# how to get the number of args - look at expressionList - then, eleminate all commas between '(' annd ')' and that's left + 1 tells you :)
+		# the problem here is passing info between these snippets servicing each element -- a perfect time to go in for a full-fledged fn that runs 
+		# when the final ')' is seen - then, it can just look at the start (what's in front of the very first '(' )...
+		self.toDo[ '_subroutineCall'] = [ 0, 'n/a', 0, 'n/a', 0, 'n/a', 0, 'dump', 0, "self.vmgen.writeCall( self.symTab, buffer, VMbuf )" ]
+		# the idea is, you give writeCall everything - so it can extract is_a_class_meth_call and nArgs and also the entire expression list in VM code ready..
+		# you have to look at the Symbol table to know if you're calling a method or a library function - in the case of name.fnName -- for former, it would be obj.fnName
+		# and then, 
 		
 		self.rules['_cmCallMarker'] = ['\.' , 1, '.*' , 1]
 		self.elements['_cmCallMarker'] = [ 'symbol' , 'identifier' ]
@@ -487,7 +493,7 @@ class SymbolTable :
 		elif( name in self.t_table ) :
 			return 'this ' + str( self.t_table[ name ][ 0 ] )
 		else :			# unknown variable name
-			return name + ' ' + str(-1)
+			return str(-1)
 			
 
 
@@ -499,7 +505,9 @@ class VMWriter :
 	def __init__( self ) :
 		return None
 		
-	def construct( self , kind, name, nLocals ) :
+	def construct( self , kind, name, nLocals ) :		# actually, this is totally naive - for a constructor, you need # of field variables!!
+													# on second thoughts, if we leave it as it is, then it just means Jack constructors can only
+													# be very primitive - you have to get all the field variabls as arguments and set them :) KISS
 		VMcmd = "function " + name + ' ' + str(nLocals) + "\n"
 		if 'constructor' == kind :
 			VMcmd += "push constant " + str(nLocals) + "\n"
@@ -554,17 +562,46 @@ class VMWriter :
 			VMcmd = 'not'
 		return VMcmd  + "\n" 
 		
-	def writeLabel( label ) :
+	def writeLabel( self, label ) :
 		return 'label ' + label + "\n" 
 	
-	def writeGoto( label ) :
+	def writeGoto( self, abel ) :
 		return 'goto ' + label + "\n" 
 		
-	def writeIf( label ) :
+	def writeIf( self, label ) :
 		return 'if-goto ' + label + "\n" 
 		
-	def writeCall( name, nArgs ) :
-		return 'call ' + name + ' ' + str( nArgs ) + "\n" 
+	def writeCall( self, symTab, tokens, exprList ) :
+		#	(push segment ??) (pop pointer 0) when you detect it's a method..
+		# if you see identifier1 . identifier2, then you have to see if identifier1 is in one of the segments
+		# if not, then it's is library function call.. else, you have to call type.identifier2
+		# check if you have a class function call : 
+		match = re.match( r"<identifier>\s*(\S+)\s*</identifier>\s*<symbol>\s*\.\s*</symbol>\s*<identifier>\s*(\S+)\s*</identifier>" , tokens, flags=re.MULTILINE|re.DOTALL )
+		if match : 
+			id1 = match.group(1)
+			id2 = match.group(2)
+			seg_ind = symTab.seg_ind( id1 )
+			if ( '-1' == seg_ind ) : # meaning that this identifier is not in symbol table as a variable, and is therefore a class
+				fnName = id1 + '.' + id2
+			else :
+				fnName = symTab.typeOf( id1 ) + '.' + id2
+				VMcmd = self.writePushPop( 'push', seg_ind )
+				VMcmd += "pop pointer 0		// setting 'this'\n"
+		else :
+			match = re.match( r"^\s*<identifier>\s*(\S+)\s*</identifier>\s*<symbol>\s*\(" , tokens, flags=re.MULTILINE )
+			fnName = match.group(1)
+		callCmd = "call " + fnName + ' '
+		# now for the small matter of figuring out nArgs
+		match = re.match( r"^[^(]+\(\s*</symbol>(.+)\s*</expressionList>$" , tokens, flags=re.MULTILINE|re.DOTALL )
+		args = match.group(1)
+		while( re.match( r"\(" , args ) ) :
+			args = re.sub( r"\([^(]+\)" , '', args, flags=re.MULTILINE|re.DOTALL )
+		argList = args.split( ',' )
+		nArgs = len( argList )
+		callCmd += str( nArgs )
+		VMcmd += exprList + callCmd
+		return VMcmd
+
 	
 	def writeFunction( name, nLocals ) :
 		return 'function ' + name + ' ' + str( nLocals ) + "\n" 

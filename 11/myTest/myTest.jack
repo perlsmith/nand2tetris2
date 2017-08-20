@@ -4,13 +4,21 @@ class Square {
    field Point x,y;
 
     /** Increments the square size by 2 pixels. */
-   method void incSize( int byHowMuch ) {
+   method void incSize( int byHowMuch, someClass someObj ) {
 //	 var String x;  // served it's purpose ,y;
 	 var int a,b;  // served it's purpose
    
 //     let x = "abc efgh";
-     let size[1] = size + 2 + a + byHowMuch;
-	 return this;
+//     let size[1] = size[2 + a] + 2 + a + byHowMuch;
+//	let size[1] = a;
+//	let b = someClass.someFn( size, 1 );
+	while( true ) {
+		do y.someMeth( x, 2 );
+	}
+	if( ~false ) {
+		let a = 1;
+	}
+//	 return this;
 
    }
  

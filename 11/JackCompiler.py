@@ -55,6 +55,7 @@ class Analyzer():
 		# note : 1 => 1, 2 => 0 or 1 (?) , 3 => 0 or more (*)
 		self.rules['class'] = ['class' , 1, '.*' , 1, '{' , 1 ,  'classVarDec' , 3, 'subroutineDec' , 3 , '}' , 1 ]
 		self.elements['class'] = ['keyword', 'identifier' , 'symbol', 'rule' , 'rule' , 'symbol' ]
+		self.toDo['class'] = [0, 'n/a', -1, "self.className = '%'", 0, 'n/a', 0, 'n/a', 0, 'n/a', 0, 'n/a']
 			# Nothing to be done here, because the constructor for the Analyzer already initializes the symbol Table
 		
 		self.rules['classVarDec'] = ['static|field' , 1 , '_type' , 1 , '.*' , 1 , '_addlVarDec', 3  , ';' , 1 ]	# note that static/field are "kind"
@@ -77,7 +78,7 @@ class Analyzer():
 		self.rules['subroutineDec'] = ['constructor|function|method' , 1 , 'void||_type' , 1 , '.*' , 1 , '\(', 1, 'parameterList' , 1 , '\)' , 1, 'subroutineBody' , 1]
 		self.elements['subroutineDec'] = ['keyword' , 'keyword||rule' , 'identifier' , 'symbol' , 'rule', 'symbol', 'rule' ]
 		self.toDo['subroutineDec'] = [ -1 , "self.currentFnKind = '%'" , -1 , "self.currentFnType = '%'\nself.symTab.startSubroutine()" , 
-										-1, "self.currentName = '%'",  -2 , "self.currentKind = 'argument'",  0 , 'n/a' ,
+										-1, "self.currentFnName = self.className+'.'+'%'",  -2 , "self.currentKind = 'argument'",  0 , 'n/a' ,
 										-2 , "self.currentKind = 'local'\nself.symTab.Define( self.currentFnType, self.currentFnKind, 'function.' + self.currentName)" , 0 , 'n/a' ]
 		# what this means is that you first look for keyword : void - if you see void, then your put down <keyword> void </keyword> else
 		# you look at type - which is again looking for keyword : int|char|boolean .... you get the idea..
@@ -109,8 +110,8 @@ class Analyzer():
 		
 		self.rules['subroutineBody'] = ['{' , 1 , 'varDec' , 3 , 'statements' , 1 , '}' , 1 ]
 		self.elements['subroutineBody'] = ['symbol' , 'rule', 'rule', 'symbol' ]
-		self.toDo['subroutineBody'] = [ -2 , 'self.nLocals = 0' , -3, "self.vmgen.construct( self.currentFnKind, self.currentName, self.nLocals)", 
-										2, 'dump' , 3, "self.vmgen.writeReturn( self.currentFnType, True )" ]
+		self.toDo['subroutineBody'] = [ -2 , "self.nLocals = 0" , 0, 'n/a', 2, 'dump' ,
+										-2, "VMbuf[0] = self.vmgen.construct( self.currentFnKind, self.currentFnName, self.nLocals)\nVMbuf[3]=self.vmgen.writeReturn( self.currentFnType, True )" ]
 		# here, when varDec is done, it returns numMatch - which you should now use to enter "function currentName nLocals" correctly..
 		# pending - use the final } to put out a return 0 in the case of a void or a constructor (where you have to return this -- if you ask me, the syntax should require it)
 		
@@ -139,10 +140,10 @@ class Analyzer():
 		
 		self.rules['ifStatement'] = ['if' , 1 , '\(' , 1 , 'expression' , 1 , '\)' , 1 , '{' , 1 , 'statements' , 1 , '}' , 1 , '_elseBlock' , 2 ]
 		self.elements['ifStatement'] = ['keyword' , 'symbol', 'rule', 'symbol', 'symbol', 'rule' , 'symbol' , 'rule' ]
-		self.toDo['ifStatement'] = [-2, 'self.if_lbl_id += 1', -2, 'VMbuf[7] = "label LBL_IF_" + str(self.if_lbl_id+1)', 
-										0, 'dump', -2, "VMbuf[1] = 'not'\nVMbuf[2] = 'if-goto LBL_IF_' + str(self.if_lbl_id)",
+		self.toDo['ifStatement'] = [0, 'n/a', -2, 'VMbuf[7] = "label LBL_IF_" + str(self.if_lbl_id+2)', 
+										0, 'dump', -2, "VMbuf[1] = 'not'\nVMbuf[2] = 'if-goto LBL_IF_' + str(self.if_lbl_id+1)",
 										0, 'n/a', 6, 'dump', 
-										-2, "VMbuf[4] = 'goto LBL_IF_'+str(self.if_lbl_id+1)\nVMbuf[5] = 'label LBL_IF_' + str(self.if_lbl_id) \nself.if_lbl_id += 1",
+										-2, "VMbuf[4] = 'goto LBL_IF_'+str(self.if_lbl_id+2)\nVMbuf[5] = 'label LBL_IF_' + str(self.if_lbl_id+1) \nself.if_lbl_id += 2",
 										3, 'dump']
 		# the implementation uses the counter if_lbl_id and increments it twice as it is used
 		# it's spaghetti code - the analyze function in this class maintains a VMbuf array - and this array contains python code to
@@ -154,17 +155,17 @@ class Analyzer():
 		
 		self.rules['whileStatement'] = ['while', 1 , '\(' , 1, 'expression' , 1 , '\)' , 1 , '{' , 1 , 'statements' , 1 , '}' , 1 ]
 		self.elements['whileStatement'] = ['keyword' , 'symbol' , 'rule', 'symbol' , 'symbol' , 'rule' , 'symbol' ]
-		self.toDo['whileStatement'] = [ -2, "self.if_lbl_id += 1\nVMbuf[0] = 'label LBL_IF_'+str(self.if_lbl_id)",
-										-2, "VMbuf[4] = 'goto LBL_IF_'+str(self.if_lbl_id)" , 1, 'dump',
-										-2, "VMbuf[2] = 'if-goto LBL_IF_' + str(self.if_lbl_id+1)", 0, 'n/a', 3, 'dump',
-										-2, "VMbuf[5] = 'label LBL_IF_' + str(self.if_lbl_id+1) \nself.if_lbl_id += 1"]
+		self.toDo['whileStatement'] = [ -2, "VMbuf[0] = 'label LBL_IF_'+str(self.if_lbl_id+1)",
+										-2, "VMbuf[4] = 'goto LBL_IF_'+str(self.if_lbl_id+1)" , 1, 'dump',
+										-2, "VMbuf[2] = 'if-goto LBL_IF_' + str(self.if_lbl_id+2)", 0, 'n/a', 3, 'dump',
+										-2, "VMbuf[5] = 'label LBL_IF_' + str(self.if_lbl_id+2) \nself.if_lbl_id += 2"]
 		
 		self.rules['doStatement'] = ['do' , 1 , '_subroutineCall' , 1 , ';' , 1 ]
 		self.elements['doStatement'] = ['keyword' , 'rule' , 'symbol' ]
 
 		self.rules['returnStatement'] = ['return' , 1 , 'expression' , 2 , ';' , 1 ]
 		self.elements['returnStatement'] = ['keyword' , 'rule' , 'symbol' ]
-		self.toDo['returnStatement'] = [ 0, 'n/a', -3 , "subVM = self.vmgen.writeReturn( subVM, False )", 0, 'n/a']
+		self.toDo['returnStatement'] = [ 0, 'n/a', 0 , 'dump', 1, "self.vmgen.writeReturn( VMbuf[0], False)"]	
 		
 		self.rules['expression'] = ['term' , 1 , '_subExp' , 3 ]
 		self.elements['expression'] = ['rule' , 'rule' ]
@@ -399,10 +400,10 @@ class Analyzer():
 				buffer = ''
 				VMfinal = VMfinal +  "\n".join( VMbuf )
 			else :
-				return [final, satisfied, VMfinal, howMany ]		# lame spaghetti code, but just get it working for now..
+				return [final, satisfied, "\t\t// "+ruleName+"\n"+VMfinal, howMany ]		# lame spaghetti code, but just get it working for now..
 
 #		pdb.set_trace()
-		return [final, satisfied, VMfinal, howMany ]		# takes care of the "satisfied" case - where you'll observe you 
+		return [final, satisfied, "\t\t// "+ruleName+"\n"+VMfinal, howMany ]		# takes care of the "satisfied" case - where you'll observe you 
 												# can't have a return statement because of the hunger = 3 case..
 			# in the case of 2 or 3, you only add whatIs if you actually find the patterns..
 		
@@ -572,6 +573,8 @@ class VMWriter :
 			VMcmd = 'gt'
 		elif( '&amp;' == cmd ) :
 			VMcmd = 'and'
+		elif( '|' == cmd ) :
+			VMcmd = 'or'
 
 		return VMcmd  + "\n" 
 
@@ -632,7 +635,10 @@ class VMWriter :
 		if ( 'void' == what and isInlineCmd) :
 			return  "push constant 0\nreturn\n"
 		elif( not isInlineCmd ) :		# essentially supporting spaghetting code
-			return what + "\nreturn\n"
+			if ( '' == what ) :
+				return "push constant 0\nreturn\n"
+			else :
+				return "return\n"
 		else :
 			return ''
 		

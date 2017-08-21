@@ -142,10 +142,10 @@ class Analyzer():
 		self.elements['ifStatement'] = ['keyword' , 'symbol', 'rule', 'symbol', 'symbol', 'rule' , 'symbol' , 'rule' ]
 		self.toDo['ifStatement'] = [-2, 'if_lbl_id=self.if_lbl_id\nself.if_lbl_id += 2', 		# keyword 'if'
 									-2, 'VMbuf[7] = "label LBL_IF_" + str(if_lbl_id+1)', 
-										0, 'dump', -2, "VMbuf[1] = 'not'\nVMbuf[2] = 'if-goto LBL_IF_' + str(if_lbl_id)",
-										0, 'n/a', 6, 'dump', 
-										-2, "VMbuf[4] = 'goto LBL_IF_'+str(if_lbl_id+1)\nVMbuf[5] = 'label LBL_IF_' + str(if_lbl_id)",
-										3, 'dump']
+										0, 'dump', -2, "VMbuf[1] = 'not'\nVMbuf[2] = 'if-goto LBL_IF_' + str(if_lbl_id+1)",
+										0, 'n/a', 3, 'dump', 
+										-2, "VMbuf[4] = 'goto LBL_IF_'+str(if_lbl_id)\nVMbuf[5] = 'label LBL_IF_' + str(if_lbl_id)",
+										6, 'dump']
 		# the implementation uses the counter if_lbl_id and increments it twice as it is used
 		# it's spaghetti code - the analyze function in this class maintains a VMbuf array - and this array contains python code to
 		# populate that array as it traverses this one and does its bidding
@@ -157,9 +157,10 @@ class Analyzer():
 		self.rules['whileStatement'] = ['while', 1 , '\(' , 1, 'expression' , 1 , '\)' , 1 , '{' , 1 , 'statements' , 1 , '}' , 1 ]
 		self.elements['whileStatement'] = ['keyword' , 'symbol' , 'rule', 'symbol' , 'symbol' , 'rule' , 'symbol' ]
 		self.toDo['whileStatement'] = [ -2, "if_lbl_id=self.if_lbl_id\nself.if_lbl_id += 2\nVMbuf[0] = 'label LBL_IF_'+str(if_lbl_id)",
-										-2, "VMbuf[4] = 'goto LBL_IF_'+str(if_lbl_id)" , 1, 'dump',
-										-2, "VMbuf[2] = 'if-goto LBL_IF_' + str(if_lbl_id+1)", 0, 'n/a', 3, 'dump',
-										-2, "VMbuf[5] = 'label LBL_IF_' + str(if_lbl_id+1)"]
+										-2, "VMbuf[5] = 'goto LBL_IF_'+str(if_lbl_id)" , 1, 'dump',
+										-2, "VMbuf[2] = 'not'\nVMbuf[3]='if-goto LBL_IF_' + str(if_lbl_id+1)", 0, 'n/a',
+										4, 'dump',
+										-2, "VMbuf[6] = 'label LBL_IF_' + str(if_lbl_id+1)"]
 		
 		self.rules['doStatement'] = ['do' , 1 , '_subroutineCall' , 1 , ';' , 1 ]
 		self.elements['doStatement'] = ['keyword' , 'rule' , 'symbol' ]
@@ -543,7 +544,7 @@ class VMWriter :
 		VMcmd = "push constant " + str( len( string ) ) + "\n"
 		VMcmd += "call String.new 1\n"	# remember nArgs - and the fact that String is a class!
 		for char in string :
-			VMcmd = VMcmd + "push " + str(ord( char )) + "\n"
+			VMcmd = VMcmd + "push constant " + str(ord( char )) + "\n"
 			VMcmd = VMcmd + "call String.appendChar 2\n"
 		return VMcmd
 	

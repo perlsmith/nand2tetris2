@@ -142,10 +142,10 @@ class Analyzer():
 		self.elements['ifStatement'] = ['keyword' , 'symbol', 'rule', 'symbol', 'symbol', 'rule' , 'symbol' , 'rule' ]
 		self.toDo['ifStatement'] = [-2, 'if_lbl_id=self.if_lbl_id\nself.if_lbl_id += 2', 		# keyword 'if'
 									-2, 'VMbuf[7] = "label LBL_IF_" + str(if_lbl_id+1)', 
-										0, 'dump', -2, "VMbuf[1] = 'not'\nVMbuf[2] = 'if-goto LBL_IF_' + str(if_lbl_id+1)",
-										0, 'n/a', 3, 'dump', 
-										-2, "VMbuf[4] = 'goto LBL_IF_'+str(if_lbl_id)\nVMbuf[5] = 'label LBL_IF_' + str(if_lbl_id)",
-										6, 'dump']
+										0, 'dump', -2, "VMbuf[2] = 'if-goto LBL_IF_' + str(if_lbl_id)",
+										0, 'n/a', 6, 'dump', 
+										-2, "VMbuf[4] = 'goto LBL_IF_'+str(if_lbl_id+1)\nVMbuf[5] = 'label LBL_IF_' + str(if_lbl_id)",
+										3, 'dump']
 		# the implementation uses the counter if_lbl_id and increments it twice as it is used
 		# it's spaghetti code - the analyze function in this class maintains a VMbuf array - and this array contains python code to
 		# populate that array as it traverses this one and does its bidding
@@ -544,6 +544,9 @@ class VMWriter :
 			VMcmd += "push constant " + str(nLocals) + "\n"
 			VMcmd += "call Memory.alloc 1\n"
 			VMcmd += "pop pointer 0\n" 		# sets the 'this' segment
+		elif 'method' == kind :
+			VMcmd += "push argument 0\n"
+			VMcmd += "pop pointer 0\n"		# sets the 'this' segment
 		return VMcmd
 		
 	def createString( self, string ) :
@@ -608,8 +611,22 @@ class VMWriter :
 		#	(push segment ??) (pop pointer 0) when you detect it's a method..
 		# if you see identifier1 . identifier2, then you have to see if identifier1 is in one of the segments
 		# if not, then it's is library function call.. else, you have to call type.identifier2
+		# also, in the case of a constructor, you don't send the object, you receive it, so nArgs is = len( param list )
+
+		# now for the small matter of figuring out nArgs
+		match = re.match( r"^[^(]+\(\s*</symbol>(.+)\s*</expressionList>$" , tokens, flags=re.MULTILINE|re.DOTALL )
+		args = match.group(1)
+		isVoid = False
+		while( re.match( r"\(" , args ) ) :
+			args = re.sub( r"\([^(]+\)" , '', args, flags=re.MULTILINE|re.DOTALL )	# that is, condense all function calls within.. (can't handle strings :( )
+		if re.search( '<expression>' , args ) :
+			argList = args.split( ',' )
+			nArgs = len( argList )
+		else :
+			nArgs = 0
+
 		# check if you have a class function call : 
-		match = re.match( r"<identifier>\s*(\S+)\s*</identifier>\s*<symbol>\s*\.\s*</symbol>\s*<identifier>\s*(\S+)\s*</identifier>" , tokens, flags=re.MULTILINE|re.DOTALL )
+		match = re.search( r"<identifier>\s*(\S+)\s*</identifier>\s*<symbol>\s*\.\s*</symbol>\s*<identifier>\s*(\S+)\s*</identifier>" , tokens, flags=re.MULTILINE|re.DOTALL )
 		VMcmd = ''
 		if match : 
 			id1 = match.group(1)
@@ -617,23 +634,31 @@ class VMWriter :
 			seg_ind = symTab.seg_ind( id1 )
 			if ( '-1' == seg_ind ) : # meaning that this identifier is not in symbol table as a variable, and is therefore a class
 				fnName = id1 + '.' + id2
+				cmd = r"grep -P '(?:method|function)\s+\S+\s+" + id2 + "' " + source + '/' + id1 + ".jack"
+				prototype = os.popen( cmd ).read()
+				if( re.search( r"(?:method|function)\s+void" , prototype ) ) :
+					isVoid = True			# constructor can never be void
 			else :
-				fnName = symTab.typeOf( id1 ) + '.' + id2
+				className = symTab.typeOf( id1 )
+				fnName = className + '.' + id2
 				VMcmd = self.writePushPop( 'push', seg_ind )
-				VMcmd += "pop pointer 0		// setting 'this'\n"
+#				VMcmd += "pop pointer 0		// setting 'this'\n"  # a duh moment - this belongs in the method
+				nArgs += 1
+				cmd = r"grep -P '(?:method|function)\s+\S+\s+" + id2 + "' " + source + r"/" + className + ".jack"
+				prototype = os.popen( cmd ).read()
+				if( re.search( r"(?:method|function)\s+void" , prototype ) ) :
+					isVoid = True			# constructor can never be void
 		else :
-			match = re.match( r"^\s*<identifier>\s*(\S+)\s*</identifier>\s*<symbol>\s*\(" , tokens, flags=re.MULTILINE )
+			match = re.search( r"^\s*<identifier>\s*(\S+)\s*</identifier>\s*<symbol>\s*\(" , tokens, flags=re.MULTILINE )
 			fnName = match.group(1)
+			if( 'void' == symTab.typeOf( fnName ) ) :
+				isVoid = True
 		callCmd = "call " + fnName + ' '
-		# now for the small matter of figuring out nArgs
-		match = re.match( r"^[^(]+\(\s*</symbol>(.+)\s*</expressionList>$" , tokens, flags=re.MULTILINE|re.DOTALL )
-		args = match.group(1)
-		while( re.match( r"\(" , args ) ) :
-			args = re.sub( r"\([^(]+\)" , '', args, flags=re.MULTILINE|re.DOTALL )
-		argList = args.split( ',' )
-		nArgs = len( argList )
+
 		callCmd += str( nArgs )
 		VMcmd += "\n".join(exprList) + callCmd
+		if isVoid :
+			VMcmd += "\npop temp 0\n"
 		return VMcmd
 
 	

@@ -111,7 +111,7 @@ class Analyzer():
 		self.rules['subroutineBody'] = ['{' , 1 , 'varDec' , 3 , 'statements' , 1 , '}' , 1 ]
 		self.elements['subroutineBody'] = ['symbol' , 'rule', 'rule', 'symbol' ]
 		self.toDo['subroutineBody'] = [ -2 , "self.nLocals = 0" , 0, 'n/a', 2, 'dump' ,
-										-2, "VMbuf[0] = self.vmgen.construct( self.currentFnKind, self.currentFnName, self.nLocals)\nVMbuf[3]=self.vmgen.writeReturn( self.currentFnType, True )" ]
+							-2, "VMbuf[0] = self.vmgen.construct( self.currentFnKind, self.currentFnName, self.nLocals, self.symTab)\nVMbuf[3]=self.vmgen.writeReturn( self.currentFnType, True )" ]
 		# here, when varDec is done, it returns numMatch - which you should now use to enter "function currentName nLocals" correctly..
 		# pending - use the final } to put out a return 0 in the case of a void or a constructor (where you have to return this -- if you ask me, the syntax should require it)
 		
@@ -536,12 +536,12 @@ class VMWriter :
 	def __init__( self ) :
 		return None
 		
-	def construct( self , kind, name, nLocals ) :		# actually, this is totally naive - for a constructor, you need # of field variables!!
+	def construct( self , kind, name, nLocals , symTab) :		# actually, this is totally naive - for a constructor, you need # of field variables!!
 													# on second thoughts, if we leave it as it is, then it just means Jack constructors can only
 													# be very primitive - you have to get all the field variabls as arguments and set them :) KISS
 		VMcmd = "function " + name + ' ' + str(nLocals) + "\n"
 		if 'constructor' == kind :
-			VMcmd += "push constant " + str(nLocals) + "\n"
+			VMcmd += "push constant " + str(len(symTab.t_table.keys() ) ) + "\n"
 			VMcmd += "call Memory.alloc 1\n"
 			VMcmd += "pop pointer 0\n" 		# sets the 'this' segment
 		elif 'method' == kind :

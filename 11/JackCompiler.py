@@ -403,10 +403,16 @@ class Analyzer():
 				buffer = ''
 				VMfinal = VMfinal +  "\n".join( VMbuf )
 			else :
-				return [final, satisfied, "\t\t// "+ruleName+"\n"+VMfinal, howMany ]		# lame spaghetti code, but just get it working for now..
+				re.sub( r"\n+" , r"\n", VMfinal , flags=re.MULTILINE)
+				if( not '' == VMfinal ) :
+					VMfinal = "\n\t\t// "+ruleName+"\n"+VMfinal
+				return [final, satisfied, VMfinal, howMany ]		# lame spaghetti code, but just get it working for now..
 
 #		pdb.set_trace()
-		return [final, satisfied, "\t\t// "+ruleName+"\n"+VMfinal, howMany ]		# takes care of the "satisfied" case - where you'll observe you 
+		re.sub( r"\n+" , r"\n", VMfinal , flags=re.MULTILINE)
+		if( not '' == VMfinal ) :
+			VMfinal = "\n\t\t// "+ruleName+"\n"+VMfinal
+		return [final, satisfied, VMfinal, howMany ]		# takes care of the "satisfied" case - where you'll observe you 
 												# can't have a return statement because of the hunger = 3 case..
 			# in the case of 2 or 3, you only add whatIs if you actually find the patterns..
 		

@@ -79,7 +79,7 @@ class Analyzer():
 		self.elements['subroutineDec'] = ['keyword' , 'keyword||rule' , 'identifier' , 'symbol' , 'rule', 'symbol', 'rule' ]
 		self.toDo['subroutineDec'] = [ -1 , "self.currentFnKind = '%'" , -1 , "self.currentFnType = '%'\nself.symTab.startSubroutine()" , 
 										-1, "self.currentFnName = self.className+'.'+'%'",  -2 , "self.currentKind = 'argument'",  0 , 'n/a' ,
-										-2 , "self.currentKind = 'local'\nself.symTab.Define( self.currentFnType, self.currentFnKind, 'function.' + self.currentName)" , 0 , 'n/a' ]
+						-2 , "self.currentKind = 'local'\nself.symTab.Define( self.currentFnType, self.currentFnKind, 'function.' + self.currentName)" , 0 , 'n/a' ]
 		# what this means is that you first look for keyword : void - if you see void, then your put down <keyword> void </keyword> else
 		# you look at type - which is again looking for keyword : int|char|boolean .... you get the idea..
 		# in the case of a void, you have to return 0... that's the VM mapping..
@@ -111,7 +111,7 @@ class Analyzer():
 		self.rules['subroutineBody'] = ['{' , 1 , 'varDec' , 3 , 'statements' , 1 , '}' , 1 ]
 		self.elements['subroutineBody'] = ['symbol' , 'rule', 'rule', 'symbol' ]
 		self.toDo['subroutineBody'] = [ -2 , "self.nLocals = 0" , 0, 'n/a', 2, 'dump' ,
-							-2, "VMbuf[0] = self.vmgen.construct( self.currentFnKind, self.currentFnName, self.nLocals, self.symTab)\nVMbuf[3]=self.vmgen.writeReturn( self.currentFnType, True )" ]
+			-2, "VMbuf[0] = self.vmgen.construct(self.currentFnKind, self.currentFnName, self.nLocals, self.symTab, self.className)\nVMbuf[3]=self.vmgen.writeReturn( self.currentFnType, True )" ]
 		# here, when varDec is done, it returns numMatch - which you should now use to enter "function currentName nLocals" correctly..
 		# pending - use the final } to put out a return 0 in the case of a void or a constructor (where you have to return this -- if you ask me, the syntax should require it)
 		
@@ -209,7 +209,7 @@ class Analyzer():
 		# how to get the number of args - look at expressionList - then, eleminate all commas between '(' annd ')' and that's left + 1 tells you :)
 		# the problem here is passing info between these snippets servicing each element -- a perfect time to go in for a full-fledged fn that runs 
 		# when the final ')' is seen - then, it can just look at the start (what's in front of the very first '(' )...
-		self.toDo[ '_subroutineCall'] = [ 0, 'n/a', 0, 'n/a', 0, 'n/a', 0, 'dump', 0, "self.vmgen.writeCall( self.symTab, buffer, VMbuf )" ]
+		self.toDo[ '_subroutineCall'] = [ 0, 'n/a', 0, 'n/a', 0, 'n/a', 0, 'dump', 0, "self.vmgen.writeCall( self.symTab, self.className, buffer, VMbuf )" ]
 		# the idea is, you give writeCall everything - so it can extract is_a_class_meth_call and nArgs and also the entire expression list in VM code ready..
 		# you have to look at the Symbol table to know if you're calling a method or a library function - in the case of name.fnName -- for former, it would be obj.fnName
 		# and then, 
@@ -484,7 +484,7 @@ class SymbolTable :
 			self.t_table[ name ] = [ self.t_index, type ]
 			self.t_index += 1
 		else :
-			self.f_table[ name ] = [type, kind]			# kind will be constructor|function|method and type will be return type - void or whatever
+			self.f_table[ name ] = [kind, type]			# kind will be constructor|function|method and type will be return type - void or whatever
 		return ''
 	
 	def varCount( self,  kind ) :		# return int and takes STATIC, FIELD, ARG or VAR
@@ -494,11 +494,9 @@ class SymbolTable :
 		else :
 			return sum( var[ 2 ] == kind for var in s_table )
 								
-	def kindOf( self, name ) :		# returns STATIC, FIELD.. of the given identifier by referencing the dicts
-		if( self.s_table[ name ] ) :
-			return self.s_table[ name ][ 2 ]
-		elif( self.c_table[ name ] ) :
-			return self.c_table[ name ][ 2 ]
+	def kindOf( self, name ) :		# only expecting to be used by function -- but, this is totally useless because you might encounter fn call before declaration..
+		if( self.f_table[ name ] ) :
+			return self.f_table[ name ][ 0 ]
 		else :
 			return 'NONE'
 			
@@ -536,10 +534,13 @@ class VMWriter :
 	def __init__( self ) :
 		return None
 		
-	def construct( self , kind, name, nLocals , symTab) :		# actually, this is totally naive - for a constructor, you need # of field variables!!
+	def construct( self , kind, name, nLocals , symTab, className) :		# actually, this is totally naive - for a constructor, you need # of field variables!!
 													# on second thoughts, if we leave it as it is, then it just means Jack constructors can only
 													# be very primitive - you have to get all the field variabls as arguments and set them :) KISS
-		VMcmd = "function " + name + ' ' + str(nLocals) + "\n"
+		fnName = name
+		if ( not re.search( '.', name ) ):
+			fnName = className + '.' + name
+		VMcmd = "function " + fnName + ' ' + str(nLocals) + "\n"
 		if 'constructor' == kind :
 			VMcmd += "push constant " + str(len(symTab.t_table.keys() ) ) + "\n"
 			VMcmd += "call Memory.alloc 1\n"
@@ -607,7 +608,7 @@ class VMWriter :
 	def writeIf( self, label ) :
 		return 'if-goto ' + label + "\n" 
 		
-	def writeCall( self, symTab, tokens, exprList ) :
+	def writeCall( self, symTab, clName, tokens, exprList ) :
 		#	(push segment ??) (pop pointer 0) when you detect it's a method..
 		# if you see identifier1 . identifier2, then you have to see if identifier1 is in one of the segments
 		# if not, then it's is library function call.. else, you have to call type.identifier2
@@ -643,16 +644,25 @@ class VMWriter :
 				fnName = className + '.' + id2
 				VMcmd = self.writePushPop( 'push', seg_ind )
 #				VMcmd += "pop pointer 0		// setting 'this'\n"  # a duh moment - this belongs in the method
-				nArgs += 1
 				cmd = r"grep -P '(?:method|function)\s+\S+\s+" + id2 + "' " + source + r"/" + className + ".jack"
 				prototype = os.popen( cmd ).read()
 				if( re.search( r"(?:method|function)\s+void" , prototype ) ) :
 					isVoid = True			# constructor can never be void
+				if( re.search( 'method' , prototype ) ) :
+					nArgs += 1
 		else :
 			match = re.search( r"^\s*<identifier>\s*(\S+)\s*</identifier>\s*<symbol>\s*\(" , tokens, flags=re.MULTILINE )
 			fnName = match.group(1)
-			if( 'void' == symTab.typeOf( fnName ) ) :
+			cmd = r"grep -P '(?:method|function)\s+\S+\s+" + fnName + "' " + source + r"/" + clName + ".jack"
+			prototype = os.popen( cmd ).read()
+			if( re.search( r"(?:method|function)\s+void" , prototype ) ) :
 				isVoid = True
+			if( re.search( 'method' , prototype ) ) :
+				# here, you are implicitly processing the current object == this, unlike in other cases where you explicitly
+				# state the object name - so that you might by sending an argument or local or field variable.. - 
+				VMcmd += "push pointer 0\n"
+				nArgs += 1			
+			fnName = clName + '.' + fnName
 		callCmd = "call " + fnName + ' '
 
 		callCmd += str( nArgs )

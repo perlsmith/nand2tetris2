@@ -164,6 +164,8 @@ class Analyzer():
 		
 		self.rules['doStatement'] = ['do' , 1 , '_subroutineCall' , 1 , ';' , 1 ]
 		self.elements['doStatement'] = ['keyword' , 'rule' , 'symbol' ]
+		self.toDo['doStatement'] = [0, 'n/a', 0, 'dump', 1, "'pop temp 0'"]
+
 
 		self.rules['returnStatement'] = ['return' , 1 , 'expression' , 2 , ';' , 1 ]
 		self.elements['returnStatement'] = ['keyword' , 'rule' , 'symbol' ]
@@ -667,8 +669,8 @@ class VMWriter :
 
 		callCmd += str( nArgs )
 		VMcmd += "\n".join(exprList) + callCmd
-		if isVoid :
-			VMcmd += "\npop temp 0\n"
+#		if isVoid :
+#			VMcmd += "\npop temp 0\n"
 		return VMcmd
 
 	

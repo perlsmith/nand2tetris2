@@ -140,12 +140,16 @@ class Analyzer():
 		
 		self.rules['ifStatement'] = ['if' , 1 , '\(' , 1 , 'expression' , 1 , '\)' , 1 , '{' , 1 , 'statements' , 1 , '}' , 1 , '_elseBlock' , 2 ]
 		self.elements['ifStatement'] = ['keyword' , 'symbol', 'rule', 'symbol', 'symbol', 'rule' , 'symbol' , 'rule' ]
-		self.toDo['ifStatement'] = [-2, 'if_lbl_id=self.if_lbl_id\nself.if_lbl_id += 2', 		# keyword 'if'
-									-2, 'VMbuf[7] = "label LBL_IF_" + str(if_lbl_id+1)', 
-										0, 'dump', -2, "VMbuf[2] = 'if-goto LBL_IF_' + str(if_lbl_id)",
-										0, 'n/a', 6, 'dump', 
-										-2, "VMbuf[4] = 'goto LBL_IF_'+str(if_lbl_id+1)\nVMbuf[5] = 'label LBL_IF_' + str(if_lbl_id)",
-										3, 'dump']
+		self.toDo['ifStatement'] = [
+		   -2, 'if_lbl_id=self.if_lbl_id\nself.if_lbl_id += 1', 		# keyword 'if'
+		   0, 'n/a', 
+		   0, 'dump', 
+		  -2, "VMbuf[2] = 'if-goto IF_TRUE' + str(if_lbl_id) + '%%goto IF_FALSE' + str(if_lbl_id) + '%%label IF_TRUE' + str(if_lbl_id)",
+		  -2, 'VMbuf[2] = re.sub( "%%",  "\\n", VMbuf[2] )' ,
+		   3, 'dump', 
+		   -2, "VMbuf[4] = 'label IF_FALSE'+str(if_lbl_id)",
+		   -1, 'VMbuf[4] = "goto IF_END" + str(if_lbl_id) + "\\n" + VMbuf[4] + "\\n" + subVM + "\\n" + "label IF_END" + str(if_lbl_id)' ]
+
 		# the implementation uses the counter if_lbl_id and increments it twice as it is used
 		# it's spaghetti code - the analyze function in this class maintains a VMbuf array - and this array contains python code to
 		# populate that array as it traverses this one and does its bidding
@@ -712,7 +716,7 @@ class VMWriter :
 		if( 'this' == value ) :
 			return "push pointer 0\n"
 		elif( 'true' == value ) :
-			return "push constant 1\n" + "neg\n"
+			return "push constant 0\n" + "not\n"
 		elif( value in ['null', 'false'] ) :
 			return "push constant 0\n"
 		

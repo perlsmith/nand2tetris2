@@ -156,11 +156,11 @@ class Analyzer():
 		
 		self.rules['whileStatement'] = ['while', 1 , '\(' , 1, 'expression' , 1 , '\)' , 1 , '{' , 1 , 'statements' , 1 , '}' , 1 ]
 		self.elements['whileStatement'] = ['keyword' , 'symbol' , 'rule', 'symbol' , 'symbol' , 'rule' , 'symbol' ]
-		self.toDo['whileStatement'] = [ -2, "if_lbl_id=self.if_lbl_id\nself.if_lbl_id += 2\nVMbuf[0] = 'label LBL_IF_'+str(if_lbl_id)",
-										-2, "VMbuf[5] = 'goto LBL_IF_'+str(if_lbl_id)" , 1, 'dump',
-										-2, "VMbuf[2] = 'not'\nVMbuf[3]='if-goto LBL_IF_' + str(if_lbl_id+1)", 0, 'n/a',
+		self.toDo['whileStatement'] = [ -2, "whl_lbl=self.whl_lbl\nself.whl_lbl += 1\nVMbuf[0] = 'label WHILE_EXP'+str(whl_lbl)",
+										-2, "VMbuf[5] = 'goto WHILE_EXP'+str(whl_lbl)" , 1, 'dump',
+										-2, "VMbuf[2] = 'not'\nVMbuf[3]='if-goto WHILE_END' + str(whl_lbl)", 0, 'n/a',
 										4, 'dump',
-										-2, "VMbuf[6] = 'label LBL_IF_' + str(if_lbl_id+1)"]
+										-2, "VMbuf[6] = 'label WHILE_END' + str(whl_lbl)"]
 		
 		self.rules['doStatement'] = ['do' , 1 , '_subroutineCall' , 1 , ';' , 1 ]
 		self.elements['doStatement'] = ['keyword' , 'rule' , 'symbol' ]
@@ -253,6 +253,8 @@ class Analyzer():
 		self.currentName = ''
 		self.a_index = ''
 		self.if_lbl_id = 0
+		self.whl_lbl = 0		# moved to these to be able to cheat - look at Shimon's VM output to quickly see why I was failing..
+
 
 	def Write( self, buffer ) :		# buffer could be very big - so might need a better way to deal with this
 		self.outstream.write( buffer )

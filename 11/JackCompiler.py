@@ -77,7 +77,8 @@ class Analyzer():
 		
 		self.rules['subroutineDec'] = ['constructor|function|method' , 1 , 'void||_type' , 1 , '.*' , 1 , '\(', 1, 'parameterList' , 1 , '\)' , 1, 'subroutineBody' , 1]
 		self.elements['subroutineDec'] = ['keyword' , 'keyword||rule' , 'identifier' , 'symbol' , 'rule', 'symbol', 'rule' ]
-		self.toDo['subroutineDec'] = [ -1 , "self.currentFnKind = '%'" , -1 , "self.currentFnType = '%'\nself.symTab.startSubroutine()" , 
+		self.toDo['subroutineDec'] = [ -1 , "self.currentFnKind = '%'" , 
+				-1 , "self.currentFnType = '%'\nself.symTab.startSubroutine()\nif( 'method' == self.currentFnKind ):\n\tself.symTab.a_index += 1" , 
 										-1, "self.currentFnName = self.className+'.'+'%'",  -2 , "self.currentKind = 'argument'",  0 , 'n/a' ,
 						-2 , "self.currentKind = 'local'\nself.symTab.Define( self.currentFnType, self.currentFnKind, 'function.' + self.currentName)" , 0 , 'n/a' ]
 		# what this means is that you first look for keyword : void - if you see void, then your put down <keyword> void </keyword> else
